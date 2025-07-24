@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnlineBookstore.Data;
 using OnlineBookstore.DTOs;
-using OnlineBookstore.Models;
-using AutoMapper;
+using OnlineBookstore.Services;
 
 namespace OnlineBookstore.Controllers
 {
@@ -11,28 +8,21 @@ namespace OnlineBookstore.Controllers
     [Route("api/[controller]")]
     public class ReviewsController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly IReviewService _reviewService;
 
-        public ReviewsController(AppDbContext context, IMapper mapper)
+        public ReviewsController(IReviewService reviewService)
         {
-            _context = context;
-            _mapper = mapper;
+            _reviewService = reviewService;
         }
 
         // GET: api/reviews
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviews()  // ← GET: Use ActionResult<T> (you know the return type)
+        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviews()
         {
             try
             {
-                var reviews = await _context.Reviews  // ← Get reviews from database
-                    .Include(r => r.Book)            // ← Load related book data
-                    .Include(r => r.User)            // ← Load related user data
-                    .ToListAsync();                  // ← Execute query and return list
-
-                var reviewDtos = _mapper.Map<IEnumerable<ReviewDto>>(reviews);
-                return Ok(reviewDtos);
+                var reviews = await _reviewService.GetAllReviewsAsync();
+                return Ok(reviews);
             }
             catch (Exception ex)
             {
@@ -42,22 +32,18 @@ namespace OnlineBookstore.Controllers
 
         // GET: api/reviews/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<ReviewDto>> GetReview(int id)  // ← GET: Use ActionResult<T> (you know the return type)
+        public async Task<ActionResult<ReviewDto>> GetReview(int id)
         {
             try
             {
-                var review = await _context.Reviews  // ← Get review from database
-                    .Include(r => r.Book)           // ← Load related book data
-                    .Include(r => r.User)           // ← Load related user data
-                    .FirstOrDefaultAsync(r => r.Id == id);  // ← Execute query and return single review
+                var review = await _reviewService.GetReviewByIdAsync(id);
 
                 if (review == null)
                 {
                     return NotFound(new { message = "Review not found" });
                 }
 
-                var reviewDto = _mapper.Map<ReviewDto>(review);
-                return Ok(reviewDto);
+                return Ok(review);
             }
             catch (Exception ex)
             {
@@ -65,9 +51,86 @@ namespace OnlineBookstore.Controllers
             }
         }
 
+        // GET: api/reviews/book/5
+        [HttpGet("book/{bookId}")]
+        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsByBook(int bookId)
+        {
+            try
+            {
+                var reviews = await _reviewService.GetReviewsByBookAsync(bookId);
+                return Ok(reviews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving book reviews", error = ex.Message });
+            }
+        }
+
+        // GET: api/reviews/user/current
+        [HttpGet("user/current")]
+        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetUserReviews()
+        {
+            try
+            {
+                var userId = "current-user-id"; // Replace with actual user ID
+                var reviews = await _reviewService.GetReviewsByUserAsync(userId);
+                return Ok(reviews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving user reviews", error = ex.Message });
+            }
+        }
+
+        // GET: api/reviews/book/5/average-rating
+        [HttpGet("book/{bookId}/average-rating")]
+        public async Task<ActionResult<double>> GetAverageRating(int bookId)
+        {
+            try
+            {
+                var averageRating = await _reviewService.GetAverageRatingAsync(bookId);
+                return Ok(averageRating);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while calculating average rating", error = ex.Message });
+            }
+        }
+
+        // GET: api/reviews/book/5/review-count
+        [HttpGet("book/{bookId}/review-count")]
+        public async Task<ActionResult<int>> GetReviewCount(int bookId)
+        {
+            try
+            {
+                var reviewCount = await _reviewService.GetReviewCountAsync(bookId);
+                return Ok(reviewCount);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while getting review count", error = ex.Message });
+            }
+        }
+
+        // GET: api/reviews/book/5/has-reviewed
+        [HttpGet("book/{bookId}/has-reviewed")]
+        public async Task<ActionResult<bool>> HasUserReviewedBook(int bookId)
+        {
+            try
+            {
+                var userId = "current-user-id"; // Replace with actual user ID
+                var hasReviewed = await _reviewService.HasUserReviewedBookAsync(userId, bookId);
+                return Ok(hasReviewed);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while checking review status", error = ex.Message });
+            }
+        }
+
         // POST: api/reviews
         [HttpPost]
-        public async Task<IActionResult> CreateReview(CreateReviewDto createReviewDto)  // ← POST: Use IActionResult (different success responses)
+        public async Task<IActionResult> CreateReview(CreateReviewDto createReviewDto)
         {
             try
             {
@@ -76,21 +139,17 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var review = _mapper.Map<Review>(createReviewDto);
-                review.CreatedAt = DateTime.UtcNow;
-                _context.Reviews.Add(review);
-                await _context.SaveChangesAsync();
-
-                // Reload the review with related data for the response
-                await _context.Entry(review)
-                    .Reference(r => r.Book)
-                    .LoadAsync();
-                await _context.Entry(review)
-                    .Reference(r => r.User)
-                    .LoadAsync();
-
-                var reviewDto = _mapper.Map<ReviewDto>(review);
-                return CreatedAtAction(nameof(GetReview), new { id = review.Id }, reviewDto);
+                var userId = "current-user-id"; // Replace with actual user ID
+                var review = await _reviewService.CreateReviewAsync(userId, createReviewDto);
+                return CreatedAtAction(nameof(GetReview), new { id = review.Id }, review);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -100,7 +159,7 @@ namespace OnlineBookstore.Controllers
 
         // PUT: api/reviews/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateReview(int id, UpdateReviewDto updateReviewDto)  // ← PUT: Use IActionResult (different success responses)
+        public async Task<IActionResult> UpdateReview(int id, UpdateReviewDto updateReviewDto)
         {
             try
             {
@@ -109,16 +168,17 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var review = await _context.Reviews.FindAsync(id);
-                if (review == null)
-                {
-                    return NotFound(new { message = "Review not found" });
-                }
-
-                _mapper.Map(updateReviewDto, review);
-                await _context.SaveChangesAsync();
-
+                var userId = "current-user-id"; // Replace with actual user ID
+                await _reviewService.UpdateReviewAsync(id, userId, updateReviewDto);
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -128,20 +188,23 @@ namespace OnlineBookstore.Controllers
 
         // DELETE: api/reviews/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteReview(int id)  // ← DELETE: Use IActionResult (different success responses)
+        public async Task<IActionResult> DeleteReview(int id)
         {
             try
             {
-                var review = await _context.Reviews.FindAsync(id);
-                if (review == null)
+                var userId = "current-user-id"; // Replace with actual user ID
+                var result = await _reviewService.DeleteReviewAsync(id, userId);
+
+                if (!result)
                 {
                     return NotFound(new { message = "Review not found" });
                 }
 
-                _context.Reviews.Remove(review);
-                await _context.SaveChangesAsync();
-
                 return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
             }
             catch (Exception ex)
             {

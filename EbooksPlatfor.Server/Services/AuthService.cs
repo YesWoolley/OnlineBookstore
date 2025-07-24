@@ -1,0 +1,274 @@
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using OnlineBookstore.DTOs;
+using OnlineBookstore.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+namespace OnlineBookstore.Services
+{
+    public class AuthService : IAuthService
+    {
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IConfiguration _configuration;
+        private readonly IMapper _mapper;
+
+        public AuthService(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            IConfiguration configuration,
+            IMapper mapper)
+        {
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _configuration = configuration;
+            _mapper = mapper;
+        }
+
+        public async Task<AuthResultDto> RegisterAsync(RegisterDto registerDto)
+        {
+            // Check if user already exists
+            var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
+            if (existingUser != null)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "User with this email already exists"
+                };
+            }
+
+            existingUser = await _userManager.FindByNameAsync(registerDto.UserName);
+            if (existingUser != null)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Username is already taken"
+                };
+            }
+
+            // Create new user
+            var user = new ApplicationUser
+            {
+                UserName = registerDto.UserName,
+                Email = registerDto.Email,
+                FirstName = registerDto.FirstName,
+                LastName = registerDto.LastName,
+                PhoneNumber = registerDto.PhoneNumber,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
+            if (!result.Succeeded)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = string.Join(", ", result.Errors.Select(e => e.Description))
+                };
+            }
+
+            // Assign default role
+            await _userManager.AddToRoleAsync(user, "User");
+
+            // Generate tokens
+            var token = await GenerateJwtTokenAsync(user);
+            var refreshToken = await GenerateRefreshTokenAsync(user);
+
+            return new AuthResultDto
+            {
+                Success = true,
+                Token = token,
+                RefreshToken = refreshToken,
+                User = await GetUserDtoAsync(user)
+            };
+        }
+
+        public async Task<AuthResultDto> LoginAsync(LoginDto loginDto)
+        {
+            var user = await _userManager.FindByNameAsync(loginDto.UserName);
+            if (user == null)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invalid username or password"
+                };
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+            if (!result.Succeeded)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invalid username or password"
+                };
+            }
+
+            // Generate tokens
+            var token = await GenerateJwtTokenAsync(user);
+            var refreshToken = await GenerateRefreshTokenAsync(user);
+
+            return new AuthResultDto
+            {
+                Success = true,
+                Token = token,
+                RefreshToken = refreshToken,
+                User = await GetUserDtoAsync(user)
+            };
+        }
+
+        public async Task<AuthResultDto> RefreshTokenAsync(string refreshToken)
+        {
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invalid refresh token"
+                };
+            }
+
+            // Generate new tokens
+            var newToken = await GenerateJwtTokenAsync(user);
+            var newRefreshToken = await GenerateRefreshTokenAsync(user);
+
+            return new AuthResultDto
+            {
+                Success = true,
+                Token = newToken,
+                RefreshToken = newRefreshToken,
+                User = await GetUserDtoAsync(user)
+            };
+        }
+
+        public async Task<bool> LogoutAsync(string refreshToken)
+        {
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            if (user != null)
+            {
+                user.RefreshToken = null;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow;
+                await _userManager.UpdateAsync(user);
+            }
+            return true;
+        }
+
+        public async Task<UserDto?> GetUserProfileAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            return user != null ? await GetUserDtoAsync(user) : null;
+        }
+
+        public async Task<UserDto> UpdateProfileAsync(string userId, UpdateProfileDto updateProfileDto)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                throw new ArgumentException("User not found");
+
+            user.FirstName = updateProfileDto.FirstName ?? user.FirstName;
+            user.LastName = updateProfileDto.LastName ?? user.LastName;
+            user.PhoneNumber = updateProfileDto.PhoneNumber ?? user.PhoneNumber;
+
+            await _userManager.UpdateAsync(user);
+            return await GetUserDtoAsync(user);
+        }
+
+        public async Task<bool> ChangePasswordAsync(string userId, ChangePasswordDto changePasswordDto)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return false;
+
+            var result = await _userManager.ChangePasswordAsync(user, changePasswordDto.CurrentPassword, changePasswordDto.NewPassword);
+            return result.Succeeded;
+        }
+
+        public async Task<bool> ConfirmEmailAsync(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return false;
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            return result.Succeeded;
+        }
+
+        public async Task<bool> ForgotPasswordAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return false;
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            // TODO: Send email with reset token
+            return true;
+        }
+
+        public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return false;
+
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            return result.Succeeded;
+        }
+
+        private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName!),
+                new Claim(ClaimTypes.Email, user.Email!),
+                new Claim("FirstName", user.FirstName ?? ""),
+                new Claim("LastName", user.LastName ?? "")
+            };
+
+            // Add roles to claims
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration["JwtSettings:SecretKey"]!));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(Convert.ToDouble(_configuration["JwtSettings:ExpirationHours"])),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task<string> GenerateRefreshTokenAsync(ApplicationUser user)
+        {
+            var refreshToken = Guid.NewGuid().ToString();
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await _userManager.UpdateAsync(user);
+            return refreshToken;
+        }
+
+        private async Task<UserDto> GetUserDtoAsync(ApplicationUser user)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            var userDto = _mapper.Map<UserDto>(user);
+            userDto.Roles = roles.ToList();
+            return userDto;
+        }
+    }
+}

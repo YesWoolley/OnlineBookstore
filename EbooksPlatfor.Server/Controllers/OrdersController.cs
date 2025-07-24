@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnlineBookstore.Data;
 using OnlineBookstore.DTOs;
-using OnlineBookstore.Models;
-using AutoMapper;
+using OnlineBookstore.Services;
 
 namespace OnlineBookstore.Controllers
 {
@@ -11,29 +8,22 @@ namespace OnlineBookstore.Controllers
     [Route("api/[controller]")]
     public class OrdersController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly IOrderService _orderService;
 
-        public OrdersController(AppDbContext context, IMapper mapper)
+        public OrdersController(IOrderService orderService)
         {
-            _context = context;
-            _mapper = mapper;
+            _orderService = orderService;
         }
 
         // GET: api/orders
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders()  // ← GET: Use ActionResult<T> (you know the return type)
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetUserOrders()
         {
             try
             {
-                var orders = await _context.Orders
-                    .Include(o => o.User)
-                    .Include(o => o.OrderItems!)
-                        .ThenInclude(oi => oi.Book)
-                    .ToListAsync();
-
-                var orderDtos = _mapper.Map<IEnumerable<OrderDto>>(orders);
-                return Ok(orderDtos);
+                var userId = "current-user-id"; // Replace with actual user ID
+                var orders = await _orderService.GetUserOrdersAsync(userId);
+                return Ok(orders);
             }
             catch (Exception ex)
             {
@@ -43,23 +33,18 @@ namespace OnlineBookstore.Controllers
 
         // GET: api/orders/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<OrderDto>> GetOrder(int id)  // ← GET: Use ActionResult<T> (you know the return type)
+        public async Task<ActionResult<OrderDto>> GetOrder(int id)
         {
             try
             {
-                var order = await _context.Orders
-                    .Include(o => o.User)
-                    .Include(o => o.OrderItems!)
-                        .ThenInclude(oi => oi.Book)
-                    .FirstOrDefaultAsync(o => o.Id == id);
+                var order = await _orderService.GetOrderByIdAsync(id);
 
                 if (order == null)
                 {
                     return NotFound(new { message = "Order not found" });
                 }
 
-                var orderDto = _mapper.Map<OrderDto>(order);
-                return Ok(orderDto);
+                return Ok(order);
             }
             catch (Exception ex)
             {
@@ -69,7 +54,7 @@ namespace OnlineBookstore.Controllers
 
         // POST: api/orders
         [HttpPost]
-        public async Task<IActionResult> CreateOrder(CreateOrderDto createOrderDto)  // ← POST: Use IActionResult (different success responses)
+        public async Task<IActionResult> CreateOrder(CreateOrderDto createOrderDto)
         {
             try
             {
@@ -78,23 +63,13 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var order = _mapper.Map<Order>(createOrderDto);
-                order.OrderDate = DateTime.UtcNow;
-                _context.Orders.Add(order);
-                await _context.SaveChangesAsync();
-
-                // Reload the order with related data for the response
-                await _context.Entry(order)
-                    .Reference(o => o.User)
-                    .LoadAsync();
-                await _context.Entry(order)
-                    .Collection(o => o.OrderItems!)
-                    .Query()
-                    .Include(oi => oi.Book)
-                    .LoadAsync();
-
-                var orderDto = _mapper.Map<OrderDto>(order);
-                return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, orderDto);
+                var userId = "current-user-id"; // Replace with actual user ID
+                var order = await _orderService.CreateOrderAsync(userId, createOrderDto);
+                return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -102,57 +77,67 @@ namespace OnlineBookstore.Controllers
             }
         }
 
-        // PUT: api/orders/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrder(int id, UpdateOrderDto updateOrderDto)  // ← PUT: Use IActionResult (different success responses)
+        // PUT: api/orders/5/status
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] string newStatus)
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var order = await _context.Orders.FindAsync(id);
-                if (order == null)
-                {
-                    return NotFound(new { message = "Order not found" });
-                }
-
-                _mapper.Map(updateOrderDto, order);
-                await _context.SaveChangesAsync();
-
-                return NoContent();
+                var order = await _orderService.UpdateOrderStatusAsync(id, newStatus);
+                return Ok(order);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while updating the order", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while updating order status", error = ex.Message });
             }
         }
 
         // DELETE: api/orders/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrder(int id)  // ← DELETE: Use IActionResult (different success responses)
+        public async Task<IActionResult> CancelOrder(int id)
         {
             try
             {
-                var order = await _context.Orders
-                    .Include(o => o.OrderItems)
-                    .FirstOrDefaultAsync(o => o.Id == id);
+                var result = await _orderService.CancelOrderAsync(id);
 
-                if (order == null)
+                if (!result)
                 {
                     return NotFound(new { message = "Order not found" });
                 }
 
-                _context.Orders.Remove(order);
-                await _context.SaveChangesAsync();
-
                 return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while deleting the order", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while cancelling the order", error = ex.Message });
+            }
+        }
+
+        // POST: api/orders/convert-cart
+        [HttpPost("convert-cart")]
+        public async Task<IActionResult> ConvertCartToOrder([FromBody] string shippingAddress)
+        {
+            try
+            {
+                var userId = "current-user-id"; // Replace with actual user ID
+                var order = await _orderService.ConvertCartToOrderAsync(userId, shippingAddress);
+                return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while converting cart to order", error = ex.Message });
             }
         }
     }

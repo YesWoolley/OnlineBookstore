@@ -46,16 +46,11 @@
 - Frontend: React pages/components for listing, creating, editing authors
 - Connecting React to the API (fetching, posting data)
 
-## **Section 9: Implementing a Generic Base Repository**
-- Creating a generic repository pattern in C#
-- Reusing data access logic for all entities
-- Dependency injection and service registration
-
-## **Section 10: Managing Publisher Data with EntityBaseRepository**
+## **Section 9: Managing Publisher Data with EntityBaseRepository**
 - Backend: Publisher endpoints using the base repository
 - Frontend: Publisher management in React
 
-## **Section 11: Managing Category Data with EntityBaseRepository**
+## **Section 10: Managing Category Data with EntityBaseRepository**
 - Backend: Category endpoints using the base repository
 - Frontend: Category management in React
 

@@ -15,15 +15,20 @@ namespace OnlineBookstore.Mapppings
                 .ForMember(dest => dest.PublisherName, opt => opt.MapFrom(src => src.Publisher.Name))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
                 .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.Reviews != null ? src.Reviews.Count : 0))
-                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.Reviews != null && src.Reviews.Any() ? src.Reviews.Average(r => r.Rating) : 0));
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src =>
+                    src.Reviews != null && src.Reviews.Any()
+                        ? src.Reviews.Average(r => r.Rating)
+                        : 0.0));
 
             CreateMap<Book, BookDetailDto>()
                 .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.Name))
                 .ForMember(dest => dest.PublisherName, opt => opt.MapFrom(src => src.Publisher.Name))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
                 .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.Reviews != null ? src.Reviews.Count : 0))
-                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.Reviews != null && src.Reviews.Any() ? src.Reviews.Average(r => r.Rating) : 0))
-                .ForMember(dest => dest.Reviews, opt => opt.MapFrom(src => src.Reviews ?? new List<Review>()));
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src =>
+                    src.Reviews != null && src.Reviews.Any()
+                        ? src.Reviews.Average(r => r.Rating)
+                        : 0.0));
 
             CreateMap<CreateBookDto, Book>();
             CreateMap<UpdateBookDto, Book>();
@@ -81,6 +86,11 @@ namespace OnlineBookstore.Mapppings
 
             CreateMap<CreateShoppingCartItemDto, ShoppingCartItem>();
             CreateMap<UpdateShoppingCartItemDto, ShoppingCartItem>();
+
+            // User mappings
+            CreateMap<ApplicationUser, UserDto>();
+            CreateMap<RegisterDto, ApplicationUser>();
+            CreateMap<UpdateProfileDto, ApplicationUser>();
         }
     }
 }

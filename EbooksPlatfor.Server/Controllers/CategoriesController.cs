@@ -4,6 +4,7 @@ using OnlineBookstore.Data;
 using OnlineBookstore.DTOs;
 using OnlineBookstore.Models;
 using AutoMapper;
+using OnlineBookstore.Services;
 
 namespace OnlineBookstore.Controllers
 {
@@ -11,13 +12,11 @@ namespace OnlineBookstore.Controllers
     [Route("api/[controller]")]
     public class CategoriesController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly ICategoryService _categoryService;
 
-        public CategoriesController(AppDbContext context, IMapper mapper)
+        public CategoriesController(ICategoryService categoryService)
         {
-            _context = context;
-            _mapper = mapper;
+            _categoryService = categoryService;
         }
 
         // GET: api/categories
@@ -26,12 +25,8 @@ namespace OnlineBookstore.Controllers
         {
             try
             {
-                var categories = await _context.Categories
-                    .Include(c => c.Books)
-                    .ToListAsync();
-
-                var categoryDtos = _mapper.Map<IEnumerable<CategoryDto>>(categories);
-                return Ok(categoryDtos);
+                var categories = await _categoryService.GetAllCategoriesAsync();
+                return Ok(categories);
             }
             catch (Exception ex)
             {
@@ -45,21 +40,33 @@ namespace OnlineBookstore.Controllers
         {
             try
             {
-                var category = await _context.Categories
-                    .Include(c => c.Books)
-                    .FirstOrDefaultAsync(c => c.Id == id);
+                var category = await _categoryService.GetCategoryByIdAsync(id);
 
                 if (category == null)
                 {
                     return NotFound(new { message = "Category not found" });
                 }
 
-                var categoryDto = _mapper.Map<CategoryDto>(category);
-                return Ok(categoryDto);
+                return Ok(category);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while retrieving the category", error = ex.Message });
+            }
+        }
+
+        // GET: api/categories/search?q=searchTerm
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<CategoryDto>>> SearchCategories([FromQuery] string q)
+        {
+            try
+            {
+                var categories = await _categoryService.SearchCategoriesAsync(q);
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while searching categories", error = ex.Message });
             }
         }
 
@@ -74,12 +81,8 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var category = _mapper.Map<Category>(createCategoryDto);
-                _context.Categories.Add(category);
-                await _context.SaveChangesAsync();
-
-                var categoryDto = _mapper.Map<CategoryDto>(category);
-                return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, categoryDto);
+                var category = await _categoryService.CreateCategoryAsync(createCategoryDto);
+                return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
             }
             catch (Exception ex)
             {
@@ -98,14 +101,7 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var category = await _context.Categories.FindAsync(id);
-                if (category == null)
-                {
-                    return NotFound(new { message = "Category not found" });
-                }
-
-                _mapper.Map(updateCategoryDto, category);
-                await _context.SaveChangesAsync();
+                await _categoryService.UpdateCategoryAsync(id, updateCategoryDto);
 
                 return NoContent();
             }
@@ -117,28 +113,22 @@ namespace OnlineBookstore.Controllers
 
         // DELETE: api/categories/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCategory(int id)  // ← DELETE: Use IActionResult (different success responses)
+        public async Task<IActionResult> DeleteCategory(int id)
         {
             try
             {
-                var category = await _context.Categories
-                    .Include(c => c.Books)
-                    .FirstOrDefaultAsync(c => c.Id == id);
+                var result = await _categoryService.DeleteCategoryAsync(id);
 
-                if (category == null)
+                if (!result)
                 {
                     return NotFound(new { message = "Category not found" });
                 }
 
-                if (category.Books != null && category.Books.Any())
-                {
-                    return BadRequest(new { message = "Cannot delete category with existing books" });
-                }
-
-                _context.Categories.Remove(category);
-                await _context.SaveChangesAsync();
-
                 return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {

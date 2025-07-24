@@ -9,7 +9,6 @@ namespace OnlineBookstore.Models
        
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
-        [Url]
         public string? CoverImageUrl { get; set; }
         public decimal Price { get; set; }
         public int StockQuantity { get; set; } // For inventory tracking

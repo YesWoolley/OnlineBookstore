@@ -1,74 +1,40 @@
-﻿using AutoMapper;
-using EbooksPlatform.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnlineBookstore.Data;
+﻿using Microsoft.AspNetCore.Mvc;
 using OnlineBookstore.DTOs;
-using OnlineBookstore.Models;
+using OnlineBookstore.Services;
 
 namespace OnlineBookstore.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ShoppingCartItemsController : ControllerBase
+    public class ShoppingCartController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly IShoppingCartService _cartService;
 
-        public ShoppingCartItemsController(AppDbContext context, IMapper mapper)
+        public ShoppingCartController(IShoppingCartService cartService)
         {
-            _context = context;
-            _mapper = mapper;
+            _cartService = cartService;
         }
 
-        // GET: api/shoppingcartitems
+        // GET: api/shoppingcart
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ShoppingCartItemDto>>> GetShoppingCartItems()
+        public async Task<ActionResult<IEnumerable<ShoppingCartItemDto>>> GetUserCart()
         {
             try
             {
-                var cartItems = await _context.ShoppingCartItems
-                    .Include(sci => sci.User)
-                    .Include(sci => sci.Book)
-                    .ToListAsync();
-
-                var cartItemDtos = _mapper.Map<IEnumerable<ShoppingCartItemDto>>(cartItems);
-                return Ok(cartItemDtos);
+                // TODO: Get userId from authenticated user
+                var userId = "current-user-id"; // Replace with actual user ID
+                var cartItems = await _cartService.GetUserCartAsync(userId);
+                return Ok(cartItems);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while retrieving shopping cart items", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while retrieving cart", error = ex.Message });
             }
         }
 
-        // GET: api/shoppingcartitems/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ShoppingCartItemDto>> GetShoppingCartItem(int id)
-        {
-            try
-            {
-                var cartItem = await _context.ShoppingCartItems
-                    .Include(sci => sci.User)
-                    .Include(sci => sci.Book)
-                    .FirstOrDefaultAsync(sci => sci.Id == id);
-
-                if (cartItem == null)
-                {
-                    return NotFound(new { message = "Shopping cart item not found" });
-                }
-
-                var cartItemDto = _mapper.Map<ShoppingCartItemDto>(cartItem);
-                return Ok(cartItemDto);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving the shopping cart item", error = ex.Message });
-            }
-        }
-
-        // POST: api/shoppingcartitems
+        // POST: api/shoppingcart
         [HttpPost]
-        public async Task<IActionResult> CreateShoppingCartItem(CreateShoppingCartItemDto createCartItemDto)  // ← POST: Use IActionResult (different success responses)
+        public async Task<IActionResult> AddToCart(CreateShoppingCartItemDto createCartItemDto)
         {
             try
             {
@@ -77,30 +43,23 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var cartItem = _mapper.Map<ShoppingCartItem>(createCartItemDto);
-                _context.ShoppingCartItems.Add(cartItem);
-                await _context.SaveChangesAsync();
-
-                // Reload the cart item with related data for the response
-                await _context.Entry(cartItem)
-                    .Reference(sci => sci.User)
-                    .LoadAsync();
-                await _context.Entry(cartItem)
-                    .Reference(sci => sci.Book)
-                    .LoadAsync();
-
-                var cartItemDto = _mapper.Map<ShoppingCartItemDto>(cartItem);
-                return CreatedAtAction(nameof(GetShoppingCartItem), new { id = cartItem.Id }, cartItemDto);
+                var userId = "current-user-id"; // Replace with actual user ID
+                var cartItem = await _cartService.AddToCartAsync(userId, createCartItemDto);
+                return CreatedAtAction(nameof(GetUserCart), cartItem);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while creating the shopping cart item", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while adding to cart", error = ex.Message });
             }
         }
 
-        // PUT: api/shoppingcartitems/5
+        // PUT: api/shoppingcart/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateShoppingCartItem(int id, UpdateShoppingCartItemDto updateCartItemDto)
+        public async Task<IActionResult> UpdateCartItem(int id, UpdateShoppingCartItemDto updateCartItemDto)
         {
             try
             {
@@ -109,43 +68,73 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var cartItem = await _context.ShoppingCartItems.FindAsync(id);
-                if (cartItem == null)
-                {
-                    return NotFound(new { message = "Shopping cart item not found" });
-                }
-
-                _mapper.Map(updateCartItemDto, cartItem);
-                await _context.SaveChangesAsync();
-
+                await _cartService.UpdateCartItemAsync(id, updateCartItemDto);
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while updating the shopping cart item", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while updating cart item", error = ex.Message });
             }
         }
 
-        // DELETE: api/shoppingcartitems/5
+        // DELETE: api/shoppingcart/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteShoppingCartItem(int id)
+        public async Task<IActionResult> RemoveFromCart(int id)
         {
             try
             {
-                var cartItem = await _context.ShoppingCartItems.FindAsync(id);
-                if (cartItem == null)
-                {
-                    return NotFound(new { message = "Shopping cart item not found" });
-                }
+                var result = await _cartService.RemoveFromCartAsync(id);
 
-                _context.ShoppingCartItems.Remove(cartItem);
-                await _context.SaveChangesAsync();
+                if (!result)
+                {
+                    return NotFound(new { message = "Cart item not found" });
+                }
 
                 return NoContent();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while deleting the shopping cart item", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while removing from cart", error = ex.Message });
+            }
+        }
+
+        // DELETE: api/shoppingcart/clear
+        [HttpDelete("clear")]
+        public async Task<IActionResult> ClearCart()
+        {
+            try
+            {
+                var userId = "current-user-id"; // Replace with actual user ID
+                await _cartService.ClearUserCartAsync(userId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while clearing cart", error = ex.Message });
+            }
+        }
+
+        // GET: api/shoppingcart/total
+        [HttpGet("total")]
+        public async Task<ActionResult<decimal>> GetCartTotal()
+        {
+            try
+            {
+                var userId = "current-user-id"; // Replace with actual user ID
+                var total = await _cartService.GetCartTotalAsync(userId);
+                return Ok(total);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while calculating total", error = ex.Message });
             }
         }
     }

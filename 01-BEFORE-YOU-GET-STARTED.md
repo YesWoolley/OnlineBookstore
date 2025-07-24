@@ -1,6 +1,6 @@
 # Section 1: Before You Get Started
 
-Welcome to the Ebooks Platform Full-Stack Guide! 🚀
+Welcome to the Online Bookstore Full-Stack Guide! 🚀
 
 Before we dive into building our modern e-commerce application, let’s set the stage for what you’ll learn, what you’ll need, and what you can expect from this journey.
 
@@ -8,7 +8,7 @@ Before we dive into building our modern e-commerce application, let’s set the 
 
 ## 📚 What Are We Building?
 
-We’re going to build a **full-stack Ebooks e-commerce platform** using:
+We’re going to build a **full-stack Online Bookstore e-commerce platform** using:
 - **ASP.NET Core** (C#) for the backend API
 - **React (TypeScript)** for the frontend
 - **Entity Framework Core** for database access
@@ -16,7 +16,7 @@ We’re going to build a **full-stack Ebooks e-commerce platform** using:
 
 **Key Features:**
 - User registration, login, and authentication
-- Browse, search, and filter ebooks
+- Browse, search, and filter books
 - Shopping cart and order management
 - Admin features for managing books, authors, publishers, and categories
 - Reviews and ratings
@@ -76,4 +76,3 @@ If you have all the tools installed and you’re excited to build a professional
 
 **Next up:**
 - [Section 2: Welcome](./02-WELCOME.md)
-- [Section 3: Getting Started](./03-GETTING-STARTED.md) 

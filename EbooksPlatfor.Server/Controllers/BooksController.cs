@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnlineBookstore.Data;
 using OnlineBookstore.DTOs;
-using OnlineBookstore.Models;
-using AutoMapper;
+using OnlineBookstore.Services;
 
 namespace OnlineBookstore.Controllers
 {
@@ -11,33 +8,21 @@ namespace OnlineBookstore.Controllers
     [Route("api/[controller]")]
     public class BooksController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly IBookService _bookService;
 
-        public BooksController(AppDbContext context, IMapper mapper)
+        public BooksController(IBookService bookService)
         {
-            _context = context;
-            _mapper = mapper;
+            _bookService = bookService;
         }
 
         // GET: api/books
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks() 
+        public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks()
         {
             try
             {
-                var books = await _context.Books 
-                    .Include(b => b.Author)      
-                    .Include(b => b.Publisher)    
-                    .Include(b => b.Category)    
-                    .Include(b => b.Reviews)      
-                    .ToListAsync();              
-
-                // Input: [{ Id: 1, AuthorId: 5, PublisherId: 3 }]
-                // AutoMapper: Applies rules (AuthorId → AuthorName, etc.)
-                // Output: [{ Id: 1, AuthorName: "J.K. Rowling", PublisherName: "Scholastic" }]
-                var bookDtos = _mapper.Map<IEnumerable<BookDto>>(books);
-                return Ok(bookDtos);
+                var books = await _bookService.GetAllBooksAsync();
+                return Ok(books);
             }
             catch (Exception ex)
             {
@@ -47,25 +32,18 @@ namespace OnlineBookstore.Controllers
 
         // GET: api/books/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<BookDto>> GetBook(int id)  
+        public async Task<ActionResult<BookDto>> GetBook(int id)
         {
             try
             {
-                var book = await _context.Books
-                    .Include(b => b.Author)
-                    .Include(b => b.Publisher)
-                    .Include(b => b.Category)
-                    .Include(b => b.Reviews)
-                    .FirstOrDefaultAsync(b => b.Id == id);
-         
+                var book = await _bookService.GetBookByIdAsync(id);
 
                 if (book == null)
                 {
                     return NotFound(new { message = "Book not found" });
                 }
 
-                var bookDto = _mapper.Map<BookDto>(book);
-                return Ok(bookDto);
+                return Ok(book);
             }
             catch (Exception ex)
             {
@@ -74,27 +52,19 @@ namespace OnlineBookstore.Controllers
         }
 
         // GET: api/books/5/detail
-  
         [HttpGet("{id}/detail")]
-        public async Task<ActionResult<BookDetailDto>> GetBookDetail(int id) 
+        public async Task<ActionResult<BookDetailDto>> GetBookDetail(int id)
         {
             try
             {
-                var book = await _context.Books
-                    .Include(b => b.Author)
-                    .Include(b => b.Publisher)
-                    .Include(b => b.Category)
-                    .Include(b => b.Reviews!)
-                        .ThenInclude(r => r.User)  
-                    .FirstOrDefaultAsync(b => b.Id == id);
-           
+                var book = await _bookService.GetBookDetailByIdAsync(id);
+
                 if (book == null)
                 {
                     return NotFound(new { message = "Book not found" });
                 }
 
-                var bookDetailDto = _mapper.Map<BookDetailDto>(book);
-                return Ok(bookDetailDto);
+                return Ok(book);
             }
             catch (Exception ex)
             {
@@ -102,9 +72,69 @@ namespace OnlineBookstore.Controllers
             }
         }
 
+        // GET: api/books/search?q=harry
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<BookDto>>> SearchBooks([FromQuery] string q)
+        {
+            try
+            {
+                var books = await _bookService.SearchBooksAsync(q);
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while searching books", error = ex.Message });
+            }
+        }
+
+        // GET: api/books/category/5
+        [HttpGet("category/{categoryId}")]
+        public async Task<ActionResult<IEnumerable<BookDto>>> GetBooksByCategory(int categoryId)
+        {
+            try
+            {
+                var books = await _bookService.GetBooksByCategoryAsync(categoryId);
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving books by category", error = ex.Message });
+            }
+        }
+
+        // GET: api/books/author/5
+        [HttpGet("author/{authorId}")]
+        public async Task<ActionResult<IEnumerable<BookDto>>> GetBooksByAuthor(int authorId)
+        {
+            try
+            {
+                var books = await _bookService.GetBooksByAuthorAsync(authorId);
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving books by author", error = ex.Message });
+            }
+        }
+
+        // GET: api/books/publisher/5
+        [HttpGet("publisher/{publisherId}")]
+        public async Task<ActionResult<IEnumerable<BookDto>>> GetBooksByPublisher(int publisherId)
+        {
+            try
+            {
+                var books = await _bookService.GetBooksByPublisherAsync(publisherId);
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving books by publisher", error = ex.Message });
+            }
+        }
+
         // POST: api/books
         [HttpPost]
-        public async Task<IActionResult> CreateBook(CreateBookDto createBookDto)  
+        public async Task<IActionResult> CreateBook(CreateBookDto createBookDto)
         {
             try
             {
@@ -113,26 +143,12 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var book = _mapper.Map<Book>(createBookDto);  
-                _context.Books.Add(book);                     
-                await _context.SaveChangesAsync();            
-
-                // Reload the book with related data for the response
-                await _context.Entry(book)                   
-                    .Reference(b => b.Author)                
-                    .LoadAsync();                            
-                await _context.Entry(book)                   
-                    .Reference(b => b.Publisher)             
-                    .LoadAsync();                             
-                await _context.Entry(book)                   
-                    .Reference(b => b.Category)               
-                    .LoadAsync();                            
-                await _context.Entry(book)                   
-                    .Collection(b => b.Reviews!)            
-                    .LoadAsync();                            
-
-                var bookDto = _mapper.Map<BookDto>(book);
-                return CreatedAtAction(nameof(GetBook), new { id = book.Id }, bookDto);
+                var book = await _bookService.CreateBookAsync(createBookDto);
+                return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -142,7 +158,7 @@ namespace OnlineBookstore.Controllers
 
         // PUT: api/books/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBook(int id, UpdateBookDto updateBookDto) 
+        public async Task<IActionResult> UpdateBook(int id, UpdateBookDto updateBookDto)
         {
             try
             {
@@ -151,16 +167,12 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var book = await _context.Books.FindAsync(id);
-                if (book == null)
-                {
-                    return NotFound(new { message = "Book not found" });
-                }
-
-                _mapper.Map(updateBookDto, book);
-                await _context.SaveChangesAsync();
-
+                await _bookService.UpdateBookAsync(id, updateBookDto);
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -170,54 +182,22 @@ namespace OnlineBookstore.Controllers
 
         // DELETE: api/books/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBook(int id)  // ← DELETE: Use IActionResult (different success responses)
+        public async Task<IActionResult> DeleteBook(int id)
         {
             try
             {
-                var book = await _context.Books.FindAsync(id);
-                if (book == null)
+                var result = await _bookService.DeleteBookAsync(id);
+
+                if (!result)
                 {
                     return NotFound(new { message = "Book not found" });
                 }
-
-                _context.Books.Remove(book);
-                await _context.SaveChangesAsync();
 
                 return NoContent();
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while deleting the book", error = ex.Message });
-            }
-        }
-
-        // GET: api/books/search?query=harry
-        [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<BookDto>>> SearchBooks([FromQuery] string query)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    return BadRequest(new { message = "Search query is required" });
-                }
-
-                var books = await _context.Books
-                    .Include(b => b.Author)
-                    .Include(b => b.Publisher)
-                    .Include(b => b.Category)
-                    .Include(b => b.Reviews)
-                    .Where(b => b.Title.Contains(query) ||
-                               b.Author.Name.Contains(query) ||
-                               b.Category.Name.Contains(query))
-                    .ToListAsync();
-
-                var bookDtos = _mapper.Map<IEnumerable<BookDto>>(books);
-                return Ok(bookDtos);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while searching books", error = ex.Message });
             }
         }
     }

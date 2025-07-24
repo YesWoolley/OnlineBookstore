@@ -1,13 +1,15 @@
 ﻿using EbooksPlatform.Models;
 using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations;
 
 namespace OnlineBookstore.Models
 {
     public class ApplicationUser : IdentityUser
     {
-
-        public string FullName { get; set; } = null!;
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiryTime { get; set; }
 
         // Navigation properties for relationships
         public ICollection<Order>? Orders { get; set; }

@@ -1,38 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnlineBookstore.Data;
 using OnlineBookstore.DTOs;
-using OnlineBookstore.Models;
-using AutoMapper;
+using OnlineBookstore.Services;
 
 namespace OnlineBookstore.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/orders/{orderId}/[controller]")]
     public class OrderItemsController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly IOrderItemService _orderItemService;
 
-        public OrderItemsController(AppDbContext context, IMapper mapper)
+        public OrderItemsController(IOrderItemService orderItemService)
         {
-            _context = context;
-            _mapper = mapper;
+            _orderItemService = orderItemService;
         }
 
-        // GET: api/orderitems
+        // GET: api/orders/5/orderitems
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderItemDto>>> GetOrderItems()  // ← GET: Use ActionResult<T> (you know the return type)
+        public async Task<ActionResult<IEnumerable<OrderItemDto>>> GetOrderItems(int orderId)
         {
             try
             {
-                var orderItems = await _context.OrderItems
-                    .Include(oi => oi.Order)
-                    .Include(oi => oi.Book)
-                    .ToListAsync();
-
-                var orderItemDtos = _mapper.Map<IEnumerable<OrderItemDto>>(orderItems);
-                return Ok(orderItemDtos);
+                var orderItems = await _orderItemService.GetOrderItemsAsync(orderId);
+                return Ok(orderItems);
             }
             catch (Exception ex)
             {
@@ -40,24 +30,20 @@ namespace OnlineBookstore.Controllers
             }
         }
 
-        // GET: api/orderitems/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<OrderItemDto>> GetOrderItem(int id)  // ← GET: Use ActionResult<T> (you know the return type)
+        // GET: api/orders/5/orderitems/2
+        [HttpGet("{itemId}")]
+        public async Task<ActionResult<OrderItemDto>> GetOrderItem(int orderId, int itemId)
         {
             try
             {
-                var orderItem = await _context.OrderItems
-                    .Include(oi => oi.Order)
-                    .Include(oi => oi.Book)
-                    .FirstOrDefaultAsync(oi => oi.Id == id);
+                var orderItem = await _orderItemService.GetOrderItemByIdAsync(orderId, itemId);
 
                 if (orderItem == null)
                 {
                     return NotFound(new { message = "Order item not found" });
                 }
 
-                var orderItemDto = _mapper.Map<OrderItemDto>(orderItem);
-                return Ok(orderItemDto);
+                return Ok(orderItem);
             }
             catch (Exception ex)
             {
@@ -65,9 +51,9 @@ namespace OnlineBookstore.Controllers
             }
         }
 
-        // POST: api/orderitems
+        // POST: api/orders/5/orderitems
         [HttpPost]
-        public async Task<IActionResult> CreateOrderItem(CreateOrderItemDto createOrderItemDto)  // ← POST: Use IActionResult (different success responses)
+        public async Task<IActionResult> CreateOrderItem(int orderId, CreateOrderItemDto createOrderItemDto)
         {
             try
             {
@@ -76,17 +62,16 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var orderItem = _mapper.Map<OrderItem>(createOrderItemDto);
-                _context.OrderItems.Add(orderItem);
-                await _context.SaveChangesAsync();
-
-                // Reload the order item with related data for the response
-                await _context.Entry(orderItem)
-                    .Reference(oi => oi.Book)
-                    .LoadAsync();
-
-                var orderItemDto = _mapper.Map<OrderItemDto>(orderItem);
-                return CreatedAtAction(nameof(GetOrderItem), new { id = orderItem.Id }, orderItemDto);
+                var orderItem = await _orderItemService.CreateOrderItemAsync(orderId, createOrderItemDto);
+                return CreatedAtAction(nameof(GetOrderItem), new { orderId, itemId = orderItem.Id }, orderItem);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -94,9 +79,9 @@ namespace OnlineBookstore.Controllers
             }
         }
 
-        // PUT: api/orderitems/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrderItem(int id, UpdateOrderItemDto updateOrderItemDto)  // ← PUT: Use IActionResult (different success responses)
+        // PUT: api/orders/5/orderitems/2
+        [HttpPut("{itemId}")]
+        public async Task<IActionResult> UpdateOrderItem(int orderId, int itemId, UpdateOrderItemDto updateOrderItemDto)
         {
             try
             {
@@ -105,16 +90,16 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var orderItem = await _context.OrderItems.FindAsync(id);
-                if (orderItem == null)
-                {
-                    return NotFound(new { message = "Order item not found" });
-                }
-
-                _mapper.Map(updateOrderItemDto, orderItem);
-                await _context.SaveChangesAsync();
-
+                await _orderItemService.UpdateOrderItemAsync(orderId, itemId, updateOrderItemDto);
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -122,26 +107,39 @@ namespace OnlineBookstore.Controllers
             }
         }
 
-        // DELETE: api/orderitems/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrderItem(int id)  // ← DELETE: Use IActionResult (different success responses)
+        // DELETE: api/orders/5/orderitems/2
+        [HttpDelete("{itemId}")]
+        public async Task<IActionResult> DeleteOrderItem(int orderId, int itemId)
         {
             try
             {
-                var orderItem = await _context.OrderItems.FindAsync(id);
-                if (orderItem == null)
+                var result = await _orderItemService.DeleteOrderItemAsync(orderId, itemId);
+
+                if (!result)
                 {
                     return NotFound(new { message = "Order item not found" });
                 }
-
-                _context.OrderItems.Remove(orderItem);
-                await _context.SaveChangesAsync();
 
                 return NoContent();
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while deleting the order item", error = ex.Message });
+            }
+        }
+
+        // GET: api/orders/5/orderitems/total
+        [HttpGet("total")]
+        public async Task<ActionResult<decimal>> GetOrderTotal(int orderId)
+        {
+            try
+            {
+                var total = await _orderItemService.GetOrderTotalAsync(orderId);
+                return Ok(total);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while calculating order total", error = ex.Message });
             }
         }
     }

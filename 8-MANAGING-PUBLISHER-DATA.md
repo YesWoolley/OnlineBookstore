@@ -1,4 +1,4 @@
-# Section 9: Managing Publisher Data
+# Section 8: Managing Publisher Data
 
 Welcome to the publisher management phase! In this section, we'll create the backend services for publisher operations using simple services with direct DbContext access. This will serve as a template for managing other entities like categories and books.
 
