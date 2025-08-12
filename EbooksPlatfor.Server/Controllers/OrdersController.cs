@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineBookstore.DTOs;
 using OnlineBookstore.Services;
+using System.Security.Claims;
 
 namespace OnlineBookstore.Controllers
 {
@@ -17,11 +18,17 @@ namespace OnlineBookstore.Controllers
 
         // GET: api/orders
         [HttpGet]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetUserOrders()
         {
             try
             {
-                var userId = "current-user-id"; // Replace with actual user ID
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+                
                 var orders = await _orderService.GetUserOrdersAsync(userId);
                 return Ok(orders);
             }
@@ -31,8 +38,31 @@ namespace OnlineBookstore.Controllers
             }
         }
 
+        // GET: api/orders/user
+        [HttpGet("user")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetCurrentUserOrders()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+                
+                var orders = await _orderService.GetUserOrdersAsync(userId);
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving user orders", error = ex.Message });
+            }
+        }
+
         // GET: api/orders/5
         [HttpGet("{id}")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<ActionResult<OrderDto>> GetOrder(int id)
         {
             try
@@ -54,6 +84,7 @@ namespace OnlineBookstore.Controllers
 
         // POST: api/orders
         [HttpPost]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<IActionResult> CreateOrder(CreateOrderDto createOrderDto)
         {
             try
@@ -63,7 +94,12 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var userId = "current-user-id"; // Replace with actual user ID
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+                
                 var order = await _orderService.CreateOrderAsync(userId, createOrderDto);
                 return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
             }

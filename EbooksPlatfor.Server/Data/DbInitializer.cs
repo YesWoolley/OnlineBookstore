@@ -12,11 +12,17 @@ namespace OnlineBookstore.Data
             var userManager = serviceScope.ServiceProvider.GetService<UserManager<ApplicationUser>>();
             var roleManager = serviceScope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
 
+
+            // Ensure database is created
+            // Before using context, check for null
+            if (context == null)
+                throw new InvalidOperationException("AppDbContext is not registered in the service provider.");
+
             // Ensure database is created
             context.Database.EnsureCreated();
 
             // Seed Categories
-            if(!context.Categories.Any())
+            if (!context.Categories.Any())
             {
                 var categories = new List<Category>
                 {
@@ -93,7 +99,7 @@ namespace OnlineBookstore.Data
                         AuthorId = context.Authors.First(a => a.Name == "J.K. Rowling").Id,
                         PublisherId = context.Publishers.First(p => p.Name == "Bloomsbury").Id,
                         CategoryId = context.Categories.First(c => c.Name == "Fiction").Id,
-                        CoverImageUrl = "https://example.com/harry-potter-1.jpg"
+                        CoverImageUrl = "https://m.media-amazon.com/images/I/91r0dvXhNGL._SY522_.jpg"
                     },
                     new Book
                     {
@@ -104,7 +110,7 @@ namespace OnlineBookstore.Data
                         AuthorId = context.Authors.First(a => a.Name == "Stephen King").Id,
                         PublisherId = context.Publishers.First(p => p.Name == "Penguin Random House").Id,
                         CategoryId = context.Categories.First(c => c.Name == "Mystery & Thriller").Id,
-                        CoverImageUrl = "https://example.com/shining.jpg"
+                        CoverImageUrl = "https://people.com/thmb/io9zlB8sE8Qna-fGDJ3ACOdm8fk=/4000x0/filters:no_upscale():max_bytes(150000):strip_icc():focal(683x1199:685x1201)/The-Shining-by-Stephen-King-100524-6074748161324d57b55d4bdad872976d.jpg"
                     },
                     new Book
                     {
@@ -115,7 +121,7 @@ namespace OnlineBookstore.Data
                         AuthorId = context.Authors.First(a => a.Name == "Agatha Christie").Id,
                         PublisherId = context.Publishers.First(p => p.Name == "HarperCollins").Id,
                         CategoryId = context.Categories.First(c => c.Name == "Mystery & Thriller").Id,
-                        CoverImageUrl = "https://example.com/murder-orient-express.jpg"
+                        CoverImageUrl = "https://th.bing.com/th/id/R.12693485c6e43f8037cfa48a0a57b981?rik=%2b23OEZ6mDj%2f7gg&riu=http%3a%2f%2fwww.impawards.com%2f2017%2fposters%2fmurder_on_the_orient_express_xxlg.jpg&ehk=8pbJqtonqwY70sl3d7JeYsBI0WZ1rMQrkbwjYe1qnoA%3d&risl=&pid=ImgRaw&r=0"
                     },
                     new Book
                     {
@@ -126,7 +132,7 @@ namespace OnlineBookstore.Data
                         AuthorId = context.Authors.First(a => a.Name == "Dan Brown").Id,
                         PublisherId = context.Publishers.First(p => p.Name == "Doubleday").Id,
                         CategoryId = context.Categories.First(c => c.Name == "Mystery & Thriller").Id,
-                        CoverImageUrl = "https://example.com/da-vinci-code.jpg"
+                        CoverImageUrl = "https://1.bp.blogspot.com/-heRZKZFQ2SM/XmEZJ-yaz6I/AAAAAAAAAKU/bRxATEZ3j9YKootFz3kKDRBggXfgZdp0QCLcBGAsYHQ/s1600/images%2B%252832%2529.jpeg"
                     },
                     new Book
                     {
@@ -137,7 +143,7 @@ namespace OnlineBookstore.Data
                         AuthorId = context.Authors.First(a => a.Name == "John Grisham").Id,
                         PublisherId = context.Publishers.First(p => p.Name == "Doubleday").Id,
                         CategoryId = context.Categories.First(c => c.Name == "Mystery & Thriller").Id,
-                        CoverImageUrl = "https://example.com/firm.jpg"
+                        CoverImageUrl = "https://i.thenile.io/r1000/9780385319058.jpg?r=5f2627ecded76"
                     }
                 };
 
@@ -146,21 +152,22 @@ namespace OnlineBookstore.Data
             }
 
             // Seed Roles
-            if (!context.Roles.Any())
+            if (roleManager != null && !context.Roles.Any())
             {
                 await roleManager.CreateAsync(new IdentityRole("Admin"));
                 await roleManager.CreateAsync(new IdentityRole("User"));
             }
 
             // Seed Admin User
-            if (!context.Users.Any())
+            if (userManager != null && !context.Users.Any())
             {
                 var adminUser = new ApplicationUser
                 {
                     UserName = "admin@bookstore.com",
                     Email = "admin@bookstore.com",
                     EmailConfirmed = true,
-                    FullName = "Admin User"
+                    FirstName = "Admin",
+                    LastName = "User"
                 };
 
                 var result = await userManager.CreateAsync(adminUser, "Admin123!");

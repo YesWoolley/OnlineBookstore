@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using OnlineBookstore.DTOs;
 using OnlineBookstore.Services;
 
@@ -134,8 +134,8 @@ namespace OnlineBookstore.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while calculating total", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while calculating cart total", error = ex.Message });
             }
         }
     }
-}
+} 

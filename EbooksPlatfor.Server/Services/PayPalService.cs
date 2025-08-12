@@ -1,7 +1,10 @@
 ﻿using PayPalCheckoutSdk.Core;
 using PayPalCheckoutSdk.Orders;
+using OnlineBookstore.Services;
 
-public class PayPalService
+namespace OnlineBookstore.Services
+{
+    public class PayPalService : IPayPalService
 {
     private readonly IConfiguration _config;
     public PayPalService(IConfiguration config) => _config = config;
@@ -45,4 +48,5 @@ public class PayPalService
         var response = await GetClient().Execute(request);
         return response.Result<Order>();
     }
+}
 }

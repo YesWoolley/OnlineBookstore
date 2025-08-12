@@ -1,11 +1,14 @@
 ﻿using Azure.Core;
 using Microsoft.AspNetCore.Mvc;
+using OnlineBookstore.Services;
 using System;
 
-public class PaymentsController : Controller
+namespace OnlineBookstore.Controllers
 {
-    private readonly PayPalService _paypal;
-    public PaymentsController(PayPalService paypal) => _paypal = paypal;
+    public class PaymentsController : Controller
+    {
+        private readonly IPayPalService _paypal;
+        public PaymentsController(IPayPalService paypal) => _paypal = paypal;
 
     public async Task<IActionResult> Pay(decimal amount)
     {
@@ -24,4 +27,5 @@ public class PaymentsController : Controller
     }
 
     public IActionResult Cancel() => View();
+}
 }

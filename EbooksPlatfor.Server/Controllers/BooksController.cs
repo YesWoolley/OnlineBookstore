@@ -30,59 +30,45 @@ namespace OnlineBookstore.Controllers
             }
         }
 
-        // GET: api/books/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<BookDto>> GetBook(int id)
-        {
-            try
-            {
-                var book = await _bookService.GetBookByIdAsync(id);
-
-                if (book == null)
-                {
-                    return NotFound(new { message = "Book not found" });
-                }
-
-                return Ok(book);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving the book", error = ex.Message });
-            }
-        }
-
-        // GET: api/books/5/detail
-        [HttpGet("{id}/detail")]
-        public async Task<ActionResult<BookDetailDto>> GetBookDetail(int id)
-        {
-            try
-            {
-                var book = await _bookService.GetBookDetailByIdAsync(id);
-
-                if (book == null)
-                {
-                    return NotFound(new { message = "Book not found" });
-                }
-
-                return Ok(book);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving the book details", error = ex.Message });
-            }
-        }
-
         // GET: api/books/search?q=harry
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<BookDto>>> SearchBooks([FromQuery] string q)
         {
             try
             {
+                // Add logging to debug the issue
+                Console.WriteLine($"SearchBooks called with query: '{q}'");
+                
+                // Test basic functionality first
+                if (q == null)
+                {
+                    Console.WriteLine("Query parameter is null");
+                    return BadRequest("Search query cannot be null");
+                }
+                
+                if (string.IsNullOrWhiteSpace(q))
+                {
+                    Console.WriteLine("Search query is null or empty, returning all books");
+                    var allBooks = await _bookService.GetAllBooksAsync();
+                    return Ok(allBooks);
+                }
+
+                if (q.Length < 2)
+                {
+                    Console.WriteLine($"Search query too short: '{q}' (length: {q.Length})");
+                    return BadRequest("Search query must be at least 2 characters long");
+                }
+
+                Console.WriteLine($"Calling BookService.SearchBooksAsync with: '{q}'");
                 var books = await _bookService.SearchBooksAsync(q);
+                Console.WriteLine($"Search returned {books.Count()} books");
+                
                 return Ok(books);
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"SearchBooks error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new { message = "An error occurred while searching books", error = ex.Message });
             }
         }
@@ -129,6 +115,48 @@ namespace OnlineBookstore.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while retrieving books by publisher", error = ex.Message });
+            }
+        }
+
+        // GET: api/books/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<BookDto>> GetBook(int id)
+        {
+            try
+            {
+                var book = await _bookService.GetBookByIdAsync(id);
+
+                if (book == null)
+                {
+                    return NotFound(new { message = "Book not found" });
+                }
+
+                return Ok(book);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving the book", error = ex.Message });
+            }
+        }
+
+        // GET: api/books/5/detail
+        [HttpGet("{id}/detail")]
+        public async Task<ActionResult<BookDetailDto>> GetBookDetail(int id)
+        {
+            try
+            {
+                var book = await _bookService.GetBookDetailByIdAsync(id);
+
+                if (book == null)
+                {
+                    return NotFound(new { message = "Book not found" });
+                }
+
+                return Ok(book);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving the book details", error = ex.Message });
             }
         }
 

@@ -14,5 +14,7 @@ namespace OnlineBookstore.Services
         Task<bool> ConfirmEmailAsync(string userId, string token);
         Task<bool> ForgotPasswordAsync(string email);
         Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
+        Task<bool> CheckEmailExistsAsync(string email);
+        Task<bool> CheckUsernameExistsAsync(string userName);
     }
 }

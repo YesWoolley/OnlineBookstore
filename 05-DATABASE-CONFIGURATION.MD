@@ -733,6 +733,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseSession(); // Add session middleware
 app.UseAuthorization();
 app.MapControllers();
 

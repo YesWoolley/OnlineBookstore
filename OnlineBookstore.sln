@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36221.1 d17.14
+VisualStudioVersion = 17.14.36221.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "OnlineBookstore.client", "ebooksplatfor.client\OnlineBookstore.client.esproj", "{68CA6939-5116-1A4A-81BB-BFEE8AE29E0E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineBookstore", "EbooksPlatfor.Server\OnlineBookstore.csproj", "{31B56967-B346-40A9-AB60-FD1D27A108ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineBookstore.Server.Tests", "EbooksPlatfor.Server.Tests\OnlineBookstore.Server.Tests.csproj", "{CEAA75BA-56C6-42FD-9840-107FFA7B60EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,6 +25,10 @@ Global
 		{31B56967-B346-40A9-AB60-FD1D27A108ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{31B56967-B346-40A9-AB60-FD1D27A108ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{31B56967-B346-40A9-AB60-FD1D27A108ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEAA75BA-56C6-42FD-9840-107FFA7B60EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEAA75BA-56C6-42FD-9840-107FFA7B60EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEAA75BA-56C6-42FD-9840-107FFA7B60EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEAA75BA-56C6-42FD-9840-107FFA7B60EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

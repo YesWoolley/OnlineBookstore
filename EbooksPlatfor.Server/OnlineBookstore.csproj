@@ -7,6 +7,7 @@
     <SpaRoot>..\ebooksplatfor.client</SpaRoot>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:52441</SpaProxyServerUrl>
+    <UserSecretsId>0a3d1376-6c71-4c90-92da-7a8463233519</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

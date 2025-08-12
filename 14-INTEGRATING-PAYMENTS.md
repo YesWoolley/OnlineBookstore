@@ -1,4 +1,4 @@
-# Section 13: Integrating PayPal Payments in ASP.NET Core MVC
+# Section 14: Integrating PayPal Payments in ASP.NET Core MVC
 
 Welcome to the PayPal payment integration section! In this guide, you’ll learn how to add PayPal checkout to your ASP.NET Core MVC eCommerce app with minimal code, using the PayPal REST API and official SDK.
 
@@ -170,4 +170,94 @@ public class PaymentsController : Controller
 
 ---
 
-**You now have a minimal, course-style PayPal integration in your ASP.NET Core MVC app!**
+## 🔐 Step 8: Managing Secret Keys in Visual Studio
+
+### **✅ Using User Secrets (Recommended for Development):**
+
+#### **Method 1: Visual Studio UI**
+1. **Right-click** on your project in Solution Explorer
+2. Select **Manage User Secrets**
+3. Add your secrets:
+```json
+{
+  "PayPal": {
+    "ClientId": "YOUR_REAL_CLIENT_ID",
+    "ClientSecret": "YOUR_REAL_CLIENT_SECRET",
+    "Mode": "sandbox"
+  },
+  "JwtSettings": {
+    "SecretKey": "YOUR_SUPER_SECRET_JWT_KEY"
+  }
+}
+```
+
+#### **Method 2: Command Line**
+```bash
+# Set PayPal secrets
+dotnet user-secrets set "PayPal:ClientId" "YOUR_REAL_CLIENT_ID"
+dotnet user-secrets set "PayPal:ClientSecret" "YOUR_REAL_CLIENT_SECRET"
+dotnet user-secrets set "PayPal:Mode" "sandbox"
+
+# Set JWT secret
+dotnet user-secrets set "JwtSettings:SecretKey" "YOUR_SUPER_SECRET_JWT_KEY"
+```
+
+#### **Method 3: Package Manager Console**
+```powershell
+# Set PayPal secrets
+dotnet user-secrets set "PayPal:ClientId" "YOUR_REAL_CLIENT_ID"
+dotnet user-secrets set "PayPal:ClientSecret" "YOUR_REAL_CLIENT_SECRET"
+dotnet user-secrets set "PayPal:Mode" "sandbox"
+
+# Set JWT secret
+dotnet user-secrets set "JwtSettings:SecretKey" "YOUR_SUPER_SECRET_JWT_KEY"
+```
+
+### **✅ View Your Secrets:**
+```bash
+# List all secrets
+dotnet user-secrets list
+
+# Remove a secret
+dotnet user-secrets remove "PayPal:ClientId"
+
+# Clear all secrets
+dotnet user-secrets clear
+```
+
+### **✅ Environment Variables (Production):**
+```bash
+# Set environment variables
+setx PayPal__ClientId "YOUR_REAL_CLIENT_ID"
+setx PayPal__ClientSecret "YOUR_REAL_CLIENT_SECRET"
+setx JwtSettings__SecretKey "YOUR_SUPER_SECRET_JWT_KEY"
+```
+
+### **✅ Azure Key Vault (Production):**
+```csharp
+// In Program.cs
+builder.Configuration.AddAzureKeyVault(
+    new Uri($"https://{builder.Configuration["KeyVault:Vault"]}.vault.azure.net/"),
+    new DefaultAzureCredential());
+```
+
+---
+
+## 🎯 Secret Key Security
+
+### **✅ Do:**
+- **Use User Secrets** for development
+- **Use Environment Variables** for staging
+- **Use Azure Key Vault** for production
+- **Never commit secrets** to version control
+- **Rotate secrets regularly**
+
+### **❌ Don't:**
+- **Hardcode secrets** in source code
+- **Commit secrets** to Git
+- **Share secrets** in public repositories
+- **Use weak secrets** (use strong, random keys)
+
+---
+
+**You now have a minimal, course-style PayPal integration in your ASP.NET Core MVC app with proper secret management!**

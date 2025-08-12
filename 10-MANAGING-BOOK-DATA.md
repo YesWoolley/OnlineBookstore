@@ -724,6 +724,12 @@ builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IPublisherService, PublisherService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBookService, BookService>(); // Add this line
+builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IPayPalService, PayPalService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -741,6 +747,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/", () => "Online Bookstore API is running! Visit /swagger for API documentation.");
 
 // Seed the database
 await DbInitializer.SeedAsync(app);
@@ -872,3 +879,28 @@ Your book management backend is now complete! In the next section, we'll impleme
 
 **Next up:**
 - [Section 13: Managing Shopping Cart & Orders](./13-MANAGING-SHOPPING-CART-ORDERS.md) 
+
+## **Immediate Actions to Try:**
+
+### **1. Test These URLs First:**
+- `https://onlinebookstore-avdyfqh4byd4fhb2.australiaeast-01.azurewebsites.net/swagger`
+- `https://onlinebookstore-avdyfqh4byd4fhb2.australiaeast-01.azurewebsites.net/api/books`
+
+### **2. Add a Default Route:**
+Add this to your `Program.cs` after `app.MapControllers();`:
+
+```csharp
+app.MapGet("/", () => "Online Bookstore API is running! Visit /swagger for API documentation.");
+```
+
+### **3. Check Application Logs:**
+- Go to Azure Portal → Your Web App
+- Click "Log stream" to see if there are startup errors
+
+### **4. Verify Configuration:**
+- Check if your connection string is set in Azure Configuration
+- Ensure `ASPNETCORE_ENVIRONMENT` is set to `Production`
+
+The `/swagger` URL should definitely work and show your API documentation. If that doesn't work, there's likely a startup error that needs to be fixed first.
+
+Try the Swagger URL first and let me know what you see! 

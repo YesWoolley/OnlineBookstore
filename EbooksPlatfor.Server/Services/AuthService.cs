@@ -1,12 +1,14 @@
-﻿using AutoMapper;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using OnlineBookstore.DTOs;
 using OnlineBookstore.Models;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace OnlineBookstore.Services
 {
@@ -27,6 +29,43 @@ namespace OnlineBookstore.Services
             _signInManager = signInManager;
             _configuration = configuration;
             _mapper = mapper;
+        }
+
+        public async Task<AuthResultDto> LoginAsync(LoginDto loginDto)
+        {
+            var user = await _userManager.FindByNameAsync(loginDto.UserName);
+            if (user == null)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invalid username or password"
+                };
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+            if (!result.Succeeded)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invalid username or password"
+                };
+            }
+
+            // Generate tokens
+            var token = await GenerateJwtTokenAsync(user);
+            var refreshToken = await GenerateRefreshTokenAsync(user);
+
+            var userDto = await GetUserDtoAsync(user);
+
+            return new AuthResultDto
+            {
+                Success = true,
+                Token = token,
+                RefreshToken = refreshToken,
+                User = userDto
+            };
         }
 
         public async Task<AuthResultDto> RegisterAsync(RegisterDto registerDto)
@@ -75,41 +114,6 @@ namespace OnlineBookstore.Services
 
             // Assign default role
             await _userManager.AddToRoleAsync(user, "User");
-
-            // Generate tokens
-            var token = await GenerateJwtTokenAsync(user);
-            var refreshToken = await GenerateRefreshTokenAsync(user);
-
-            return new AuthResultDto
-            {
-                Success = true,
-                Token = token,
-                RefreshToken = refreshToken,
-                User = await GetUserDtoAsync(user)
-            };
-        }
-
-        public async Task<AuthResultDto> LoginAsync(LoginDto loginDto)
-        {
-            var user = await _userManager.FindByNameAsync(loginDto.UserName);
-            if (user == null)
-            {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Message = "Invalid username or password"
-                };
-            }
-
-            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
-            if (!result.Succeeded)
-            {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Message = "Invalid username or password"
-                };
-            }
 
             // Generate tokens
             var token = await GenerateJwtTokenAsync(user);
@@ -222,9 +226,22 @@ namespace OnlineBookstore.Services
             return result.Succeeded;
         }
 
+        public async Task<bool> CheckEmailExistsAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            return user != null;
+        }
+
+        public async Task<bool> CheckUsernameExistsAsync(string userName)
+        {
+            var user = await _userManager.FindByNameAsync(userName);
+            return user != null;
+        }
+
         private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
         {
             var roles = await _userManager.GetRolesAsync(user);
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
@@ -240,14 +257,19 @@ namespace OnlineBookstore.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration["JwtSettings:SecretKey"]!));
+            var secretKey = _configuration["JwtSettings:SecretKey"];
+            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey!));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            var issuer = _configuration["JwtSettings:Issuer"];
+            var audience = _configuration["JwtSettings:Audience"];
+            var expirationHours = _configuration["JwtSettings:ExpirationHours"];
+
             var token = new JwtSecurityToken(
-                issuer: _configuration["JwtSettings:Issuer"],
-                audience: _configuration["JwtSettings:Audience"],
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(Convert.ToDouble(_configuration["JwtSettings:ExpirationHours"])),
+                expires: DateTime.UtcNow.AddHours(Convert.ToDouble(expirationHours)),
                 signingCredentials: credentials
             );
 
@@ -259,6 +281,7 @@ namespace OnlineBookstore.Services
             var refreshToken = Guid.NewGuid().ToString();
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
             await _userManager.UpdateAsync(user);
             return refreshToken;
         }

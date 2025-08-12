@@ -1,4 +1,4 @@
-# Section 15: ASP.NET Core Identity Framework
+# Section 13: ASP.NET Core Identity Framework
 
 Welcome to the authentication and authorization phase! In this section, we'll implement user authentication using ASP.NET Core Identity with JWT tokens. This will provide the security foundation for all other features in your e-bookstore.
 
@@ -12,6 +12,25 @@ Welcome to the authentication and authorization phase! In this section, we'll im
 - How to secure API endpoints with authorization
 - How to handle user-specific data (cart, orders, reviews)
 - How to implement role-based access control
+
+---
+
+## 🔐 Step 0: Generating Secure Secret Keys
+
+Before configuring Identity, you need a secure secret key for JWT tokens. Here are the best practices:
+
+### **Method 1: Using .NET User Secrets (Recommended for Development)**
+
+```bash
+# Navigate to your server project
+cd EbooksPlatfor.Server
+
+# Initialize user secrets
+dotnet user-secrets init
+
+# Add your secret key (replace with your generated key)
+dotnet user-secrets set "JwtSettings:SecretKey" "your-generated-secret-key-here"
+```
 
 ---
 

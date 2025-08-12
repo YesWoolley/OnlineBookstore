@@ -16,32 +16,6 @@ namespace OnlineBookstore.Controllers
             _authService = authService;
         }
 
-        // POST: api/auth/register
-        [HttpPost("register")]
-        public async Task<ActionResult<AuthResultDto>> Register(RegisterDto registerDto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var result = await _authService.RegisterAsync(registerDto);
-
-                if (!result.Success)
-                {
-                    return BadRequest(new { message = result.Message });
-                }
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred during registration", error = ex.Message });
-            }
-        }
-
         // POST: api/auth/login
         [HttpPost("login")]
         public async Task<ActionResult<AuthResultDto>> Login(LoginDto loginDto)
@@ -65,6 +39,32 @@ namespace OnlineBookstore.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred during login", error = ex.Message });
+            }
+        }
+
+        // POST: api/auth/register
+        [HttpPost("register")]
+        public async Task<ActionResult<AuthResultDto>> Register(RegisterDto registerDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var result = await _authService.RegisterAsync(registerDto);
+
+                if (!result.Success)
+                {
+                    return BadRequest(new { message = result.Message });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred during registration", error = ex.Message });
             }
         }
 
@@ -191,6 +191,46 @@ namespace OnlineBookstore.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while changing password", error = ex.Message });
+            }
+        }
+
+        // GET: api/auth/check-email
+        [HttpGet("check-email")]
+        public async Task<ActionResult<object>> CheckEmail([FromQuery] string email)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(email))
+                {
+                    return BadRequest(new { message = "Email parameter is required" });
+                }
+
+                var exists = await _authService.CheckEmailExistsAsync(email);
+                return Ok(new { exists });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while checking email", error = ex.Message });
+            }
+        }
+
+        // GET: api/auth/check-username
+        [HttpGet("check-username")]
+        public async Task<ActionResult<object>> CheckUsername([FromQuery] string userName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    return BadRequest(new { message = "Username parameter is required" });
+                }
+
+                var exists = await _authService.CheckUsernameExistsAsync(userName);
+                return Ok(new { exists });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while checking username", error = ex.Message });
             }
         }
     }

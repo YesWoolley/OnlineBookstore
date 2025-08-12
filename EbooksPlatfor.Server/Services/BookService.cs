@@ -133,23 +133,40 @@ namespace OnlineBookstore.Services
 
         public async Task<IEnumerable<BookDto>> SearchBooksAsync(string searchTerm)
         {
-            if (string.IsNullOrWhiteSpace(searchTerm))
+            try
             {
-                return await GetAllBooksAsync();
+                Console.WriteLine($"SearchBooksAsync called with searchTerm: '{searchTerm}'");
+                
+                if (string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    Console.WriteLine("Search term is null or empty, returning all books");
+                    return await GetAllBooksAsync();
+                }
+
+                Console.WriteLine("Starting database query...");
+                var books = await _context.Books
+                    .Include(b => b.Author)
+                    .Include(b => b.Publisher)
+                    .Include(b => b.Category)
+                    .Include(b => b.Reviews)
+                    .Where(b => EF.Functions.Like(b.Title, $"%{searchTerm}%") ||
+                               (b.Author != null && EF.Functions.Like(b.Author.Name, $"%{searchTerm}%")) ||
+                               (b.Category != null && EF.Functions.Like(b.Category.Name, $"%{searchTerm}%")) ||
+                               (b.Publisher != null && EF.Functions.Like(b.Publisher.Name, $"%{searchTerm}%")))
+                    .ToListAsync();
+
+                Console.WriteLine($"Database query completed, found {books.Count} books");
+                var result = _mapper.Map<IEnumerable<BookDto>>(books);
+                Console.WriteLine($"Mapping completed, returning {result.Count()} DTOs");
+                
+                return result;
             }
-
-            var books = await _context.Books
-                .Include(b => b.Author)
-                .Include(b => b.Publisher)
-                .Include(b => b.Category)
-                .Include(b => b.Reviews)
-                .Where(b => b.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                           b.Author.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                           b.Category.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                           b.Publisher.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
-                .ToListAsync();
-
-            return _mapper.Map<IEnumerable<BookDto>>(books);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SearchBooksAsync error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<BookDto>> GetBooksByCategoryAsync(int categoryId)

@@ -52,7 +52,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>                                                             
  {
-     options.RequireHttpsMetadata = false;                                           
+     options.RequireHttpsMetadata = true;                                           
      options.SaveToken = true;                                                      
      options.TokenValidationParameters = new TokenValidationParameters              
      {
@@ -77,7 +77,18 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddAutoMapper(typeof(Program));
 
 // Register authentication service
-builder.Services.AddScoped<IAuthService, AuthService>();    
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Register all services
+builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<IPublisherService, PublisherService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IPayPalService, PayPalService>();    
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -85,13 +96,29 @@ builder.Services.AddSwaggerGen();
 
 // Memory Cache and Session
 builder.Services.AddMemoryCache();
+builder.Services.AddDistributedMemoryCache(); // Add this for session support
 builder.Services.AddSession();
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("https://localhost:52441", "http://localhost:52441")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Force HTTPS binding in development
 if (app.Environment.IsDevelopment())
 {
+    // Ensure HTTPS is available
+    app.Urls.Add("https://localhost:7273");
+    
     app.UseDeveloperExceptionPage();
 
     // Configure Swagger UI
@@ -109,9 +136,12 @@ else
 
 // Middleware Pipeline 
 app.UseHttpsRedirection();
+app.UseCors("AllowFrontend"); // Add CORS middleware
+app.UseSession(); // Add session middleware
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/", () => "Online Bookstore API is running! Visit /swagger for API documentation.");
 
 // Seed the database
 DbInitializer.SeedAsync(app).Wait();

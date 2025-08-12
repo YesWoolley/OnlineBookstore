@@ -7,6 +7,7 @@ namespace OnlineBookstore.Models
     {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string? FullName => $"{FirstName} {LastName}".Trim();
         public DateTime CreatedAt { get; set; }
         public string? RefreshToken { get; set; }
         public DateTime RefreshTokenExpiryTime { get; set; }

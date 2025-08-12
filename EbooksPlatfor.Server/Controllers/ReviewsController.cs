@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineBookstore.DTOs;
 using OnlineBookstore.Services;
+using System.Security.Claims;
 
 namespace OnlineBookstore.Controllers
 {
@@ -68,11 +69,17 @@ namespace OnlineBookstore.Controllers
 
         // GET: api/reviews/user/current
         [HttpGet("user/current")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<ActionResult<IEnumerable<ReviewDto>>> GetUserReviews()
         {
             try
             {
-                var userId = "current-user-id"; // Replace with actual user ID
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
                 var reviews = await _reviewService.GetReviewsByUserAsync(userId);
                 return Ok(reviews);
             }
@@ -108,17 +115,23 @@ namespace OnlineBookstore.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while getting review count", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while counting reviews", error = ex.Message });
             }
         }
 
         // GET: api/reviews/book/5/has-reviewed
         [HttpGet("book/{bookId}/has-reviewed")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<ActionResult<bool>> HasUserReviewedBook(int bookId)
         {
             try
             {
-                var userId = "current-user-id"; // Replace with actual user ID
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
                 var hasReviewed = await _reviewService.HasUserReviewedBookAsync(userId, bookId);
                 return Ok(hasReviewed);
             }
@@ -130,6 +143,7 @@ namespace OnlineBookstore.Controllers
 
         // POST: api/reviews
         [HttpPost]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<IActionResult> CreateReview(CreateReviewDto createReviewDto)
         {
             try
@@ -139,7 +153,12 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var userId = "current-user-id"; // Replace with actual user ID
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
                 var review = await _reviewService.CreateReviewAsync(userId, createReviewDto);
                 return CreatedAtAction(nameof(GetReview), new { id = review.Id }, review);
             }
@@ -159,6 +178,7 @@ namespace OnlineBookstore.Controllers
 
         // PUT: api/reviews/5
         [HttpPut("{id}")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<IActionResult> UpdateReview(int id, UpdateReviewDto updateReviewDto)
         {
             try
@@ -168,7 +188,12 @@ namespace OnlineBookstore.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var userId = "current-user-id"; // Replace with actual user ID
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
                 await _reviewService.UpdateReviewAsync(id, userId, updateReviewDto);
                 return NoContent();
             }
@@ -188,11 +213,17 @@ namespace OnlineBookstore.Controllers
 
         // DELETE: api/reviews/5
         [HttpDelete("{id}")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<IActionResult> DeleteReview(int id)
         {
             try
             {
-                var userId = "current-user-id"; // Replace with actual user ID
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
                 var result = await _reviewService.DeleteReviewAsync(id, userId);
 
                 if (!result)
