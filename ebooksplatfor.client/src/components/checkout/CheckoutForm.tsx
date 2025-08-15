@@ -30,8 +30,7 @@ interface CheckoutFormProps {
 
 const CheckoutForm: React.FC<CheckoutFormProps> = ({
     onCheckoutSuccess,
-    onCheckoutError,
-    onBackToCart
+    onCheckoutError
 }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});

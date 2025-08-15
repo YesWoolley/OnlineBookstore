@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import type { Book } from '../../types/book';
 import ReviewSection from '../reviews/ReviewSection';
 
@@ -6,11 +6,10 @@ interface BookDetailsProps {
     book: Book;
     onAddToCart?: (book: Book) => void;
     onBackToList?: () => void;
-    currentUserId?: string;
     currentUserName?: string;
 }
 
-const BookDetails = ({ book, onAddToCart, onBackToList, currentUserId, currentUserName }: BookDetailsProps) => {
+const BookDetails = ({ book, onAddToCart, onBackToList, currentUserName }: BookDetailsProps) => {
     const renderStars = (rating: number) => {
         const stars = [];
         const fullStars = Math.floor(rating);
@@ -199,7 +198,6 @@ const BookDetails = ({ book, onAddToCart, onBackToList, currentUserId, currentUs
             <ReviewSection
                 bookId={book.id}
                 bookTitle={book.title}
-                currentUserId={currentUserId}
                 currentUserName={currentUserName}
             />
         </div>

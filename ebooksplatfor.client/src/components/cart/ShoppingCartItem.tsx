@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { CartItem } from '../../types/book';
 
 interface ShoppingCartItemProps {

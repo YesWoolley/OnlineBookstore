@@ -6,15 +6,13 @@ import type { Review, CreateReview, UpdateReview } from '../../types/review';
 interface ReviewSectionProps {
   bookId: number;
   bookTitle: string;
-  currentUserId?: string;
   currentUserName?: string;
 }
 
 const ReviewSection: React.FC<ReviewSectionProps> = ({ 
   bookId, 
   bookTitle, 
-  currentUserId, 
-  currentUserName 
+  currentUserName
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -147,14 +145,14 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
 
   // Check if user has already reviewed this book
   const hasUserReviewed = reviews.some(review => 
-    currentUserId && review.userName === currentUserName
+    currentUserName && review.userName === currentUserName
   );
 
   return (
     <div className="review-section mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4>Reviews ({reviews.length})</h4>
-        {currentUserId && !hasUserReviewed && !showForm && (
+        {currentUserName && !hasUserReviewed && !showForm && (
           <button
             className="btn btn-primary"
             onClick={() => setShowForm(true)}
@@ -181,7 +179,6 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
       {/* Review List */}
       <ReviewList
         reviews={reviews}
-        currentUserId={currentUserId}
         currentUserName={currentUserName}
         onEditReview={handleEditClick}
         onDeleteReview={handleDeleteReview}

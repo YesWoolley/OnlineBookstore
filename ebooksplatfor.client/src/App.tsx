@@ -2,8 +2,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 
 // Layout Components
-import Header from './components/layout/Header';
-import Footer from './components/layout/Footer';
 import MainLayout from './components/layout/MainLayout';
 
 // UI Components
@@ -39,7 +37,7 @@ const BookGridRoute: React.FC<{
     onAddToCart: (book: Book, quantity?: number) => void;
 }> = ({ onAddToCart }) => {
     const navigate = useNavigate();
-    const { data: books = [], isLoading: loading, error, refetch } = useBooks();
+    const { data: books = [], isLoading: loading, error } = useBooks();
     
     const handleViewDetails = (book: Book) => {
         navigate(`/books/${book.id}`);
@@ -50,7 +48,7 @@ const BookGridRoute: React.FC<{
             <BookGrid
                 books={books}
                 loading={loading}
-                error={error?.message || null}
+                error={error?.message || undefined}
                 onViewDetails={handleViewDetails}
                 onAddToCart={onAddToCart}
             />
@@ -62,9 +60,8 @@ const BookGridRoute: React.FC<{
 const BookDetailsRoute: React.FC<{
     onAddToCart: (book: Book, quantity?: number) => void;
     onBackToList: () => void;
-    currentUserId?: string;
     currentUserName?: string;
-}> = ({ onAddToCart, onBackToList, currentUserId, currentUserName }) => {
+}> = ({ onAddToCart, currentUserName }) => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     
@@ -144,7 +141,6 @@ const BookDetailsRoute: React.FC<{
                 book={book}
                 onAddToCart={onAddToCart}
                 onBackToList={handleBackToList}
-                currentUserId={currentUserId}
                 currentUserName={currentUserName}
             />
         </div>
@@ -376,28 +372,13 @@ const App: React.FC = () => {
         setAppState(prev => ({ ...prev, cart: [] }));
     };
 
-    const getCartTotal = () => {
-        return appState.cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-    };
+
 
     const getCartItemCount = () => {
         return appState.cart.reduce((count, item) => count + item.quantity, 0);
     };
 
-    // Profile Handlers
-    const handleProfileUpdate = (updatedUser: User) => {
-        setAppState(prev => ({
-            ...prev,
-            user: updatedUser
-        }));
-        setAuthSuccess('Profile updated successfully!');
-        setTimeout(() => setAuthSuccess(null), 3000);
-    };
 
-    const handlePasswordChange = () => {
-        setAuthSuccess('Password changed successfully!');
-        setTimeout(() => setAuthSuccess(null), 3000);
-    };
 
     // Checkout Handler
     const handleCheckoutSuccess = (orderId: string) => {
@@ -476,7 +457,6 @@ const App: React.FC = () => {
                         <BookDetailsRoute
                             onAddToCart={addToCart}
                             onBackToList={() => setAppState(prev => ({ ...prev, selectedBook: null }))}
-                            currentUserId={appState.user?.id}
                             currentUserName={appState.user?.userName}
                         />
                     } />

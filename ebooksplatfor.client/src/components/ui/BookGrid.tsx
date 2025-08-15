@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import BookCard from './BookCard';
 import type { Book } from '../../types/book';
 

@@ -13,9 +13,7 @@ interface SignInProps {
 
 const SignIn = ({
     onSignInSuccess,
-    onSignInError,
-    onNavigateToSignUp,
-    onNavigateToForgotPassword
+    onSignInError
 }: SignInProps) => {
     const [formData, setFormData] = useState<UserCredentials>({
         userName: '',

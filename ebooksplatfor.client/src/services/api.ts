@@ -3,12 +3,7 @@ import { getApiConfig } from '../config/api';
 
 const API_BASE_URL = getApiConfig().BASE_URL;
 
-// API Response Types
-interface ApiResponse<T> {
-  data?: T;
-  message?: string;
-  error?: string;
-}
+
 
 // API Service Class
 class ApiService {
@@ -189,10 +184,7 @@ class ApiService {
     return this.post<any>('/reviews', review);
   }
 
-  // Shopping cart API methods
-  async getCartItems(userId: string) {
-    return this.get<any[]>(`/shoppingcart/user/${userId}`);
-  }
+
 
   async addToCart(cartItem: any) {
     return this.post<any>('/shoppingcart', cartItem);
@@ -211,7 +203,7 @@ class ApiService {
     return this.post<any>('/orders', order);
   }
 
-  async getUserOrders(userId: string) {
+  async getUserOrders() {
     return this.get<any[]>(`/orders/user`);
   }
 

@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../services/api';
 
 export const useSearch = () => {
   const [searchQuery, setSearchQuery] = useState('');

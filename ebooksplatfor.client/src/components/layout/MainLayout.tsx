@@ -16,10 +16,10 @@ const MainLayout = ({ children, user, isAuthenticated, cartItemCount, onSignOut 
         <div className="d-flex flex-column min-vh-100">
             {/* Header */}
             <Header
-                user={user}
-                isAuthenticated={isAuthenticated}
-                cartItemCount={cartItemCount}
-                onSignOut={onSignOut}
+                user={user || null}
+                isAuthenticated={isAuthenticated || false}
+                cartItemCount={cartItemCount || 0}
+                onSignOut={onSignOut || (() => {})}
             />
 
             {/* Main Content Area */}

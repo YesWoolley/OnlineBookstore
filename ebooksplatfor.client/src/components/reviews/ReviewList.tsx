@@ -3,14 +3,14 @@ import type { Review } from '../../types/review';
 
 interface ReviewListProps {
   reviews: Review[];
-  currentUserId?: string;
+  currentUserName?: string;
   onEditReview?: (review: Review) => void;
   onDeleteReview?: (reviewId: number) => void;
 }
 
 const ReviewList: React.FC<ReviewListProps> = ({ 
   reviews, 
-  currentUserId, 
+  currentUserName, 
   onEditReview, 
   onDeleteReview 
 }) => {
@@ -65,7 +65,7 @@ const ReviewList: React.FC<ReviewListProps> = ({
                   {formatDate(review.createdAt)}
                 </small>
                 {/* Edit/Delete buttons for user's own reviews */}
-                {currentUserId && review.userName === currentUserId && (
+                {currentUserName && review.userName === currentUserName && (
                   <div className="mt-1">
                     <button
                       className="btn btn-sm btn-outline-primary me-1"
@@ -96,6 +96,7 @@ const ReviewList: React.FC<ReviewListProps> = ({
 };
 
 export default ReviewList;
+
 
 
 

@@ -136,8 +136,8 @@ else
 
 // Middleware Pipeline 
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend"); // Add CORS middleware
-app.UseSession(); // Add session middleware
+app.UseCors("AllowFrontend"); 
+app.UseSession(); 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

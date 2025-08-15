@@ -96,7 +96,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ onAddToCart }) => {
         <BookGrid
           books={searchResults}
           loading={isLoading}
-          error={error}
+          error={error || undefined}
           onAddToCart={handleAddToCart}
           onViewDetails={handleViewDetails}
         />
