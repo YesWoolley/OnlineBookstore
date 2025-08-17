@@ -14,7 +14,7 @@ class ApiService {
   }
 
   // Generic GET request
-  private async get<T>(endpoint: string): Promise<T> {
+  private async get<T>(endpoint: string, retryCount = 0): Promise<T> {
     try {
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = {
@@ -28,15 +28,28 @@ class ApiService {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'GET',
         headers,
+        mode: 'cors',
+        credentials: 'include',
       });
 
       if (!response.ok) {
+        if (response.status === 0 && retryCount < 2) {
+          // CORS or network error, retry after delay
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return this.get<T>(endpoint, retryCount + 1);
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
       console.error(`API GET Error (${endpoint}):`, error);
+      
+      // Check if it's a CORS error
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('CORS or network error detected. Please check your backend CORS configuration.');
+      }
+      
       throw error;
     }
   }

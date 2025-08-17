@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>CORS Configuration Test</h1>
+    <p>This page tests the CORS configuration of your API.</p>
+    
+    <button onclick="testHealthEndpoint()">Test Health Endpoint</button>
+    <button onclick="testBooksEndpoint()">Test Books Endpoint</button>
+    <button onclick="testAllEndpoints()">Test All Endpoints</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api';
+        
+        function addResult(message, isSuccess = true) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testEndpoint(endpoint, description) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    addResult(`✅ ${description}: Success (${response.status})`);
+                    return true;
+                } else {
+                    addResult(`❌ ${description}: HTTP Error ${response.status}`, false);
+                    return false;
+                }
+            } catch (error) {
+                addResult(`❌ ${description}: ${error.message}`, false);
+                return false;
+            }
+        }
+
+        async function testHealthEndpoint() {
+            await testEndpoint('/health', 'Health Endpoint');
+        }
+
+        async function testBooksEndpoint() {
+            await testEndpoint('/books', 'Books Endpoint');
+        }
+
+        async function testAllEndpoints() {
+            addResult('🔄 Starting comprehensive CORS test...');
+            
+            const endpoints = [
+                { path: '/health', desc: 'Health Endpoint' },
+                { path: '/books', desc: 'Books Endpoint' },
+                { path: '/authors', desc: 'Authors Endpoint' },
+                { path: '/categories', desc: 'Categories Endpoint' }
+            ];
+
+            for (const endpoint of endpoints) {
+                await testEndpoint(endpoint.path, endpoint.desc);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between requests
+            }
+            
+            addResult('🏁 CORS test completed!');
+        }
+    </script>
+</body>
+</html>

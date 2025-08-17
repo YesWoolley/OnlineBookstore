@@ -104,7 +104,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("https://localhost:52441", "http://localhost:52441")
+        var allowedOrigins = new[]
+        {
+            "https://localhost:52441",
+            "http://localhost:52441",
+            "https://happy-smoke-0d1f54100.2.azurestaticapps.net"
+        };
+        
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -136,12 +143,27 @@ else
 
 // Middleware Pipeline 
 app.UseHttpsRedirection();
+
+// Add security headers
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Add("X-Frame-Options", "DENY");
+    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
+
 app.UseCors("AllowFrontend"); 
 app.UseSession(); 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Health check endpoints
 app.MapGet("/", () => "Online Bookstore API is running! Visit /swagger for API documentation.");
+app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow, Environment = app.Environment.EnvironmentName });
+app.MapGet("/api/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow, Environment = app.Environment.EnvironmentName });
 
 // Seed the database
 DbInitializer.SeedAsync(app).Wait();

@@ -35,7 +35,8 @@ namespace OnlineBookstore.Data
                     new Category { Name = "History" },
                     new Category { Name = "Self-Help" },
                     new Category { Name = "Business" },
-                    new Category { Name = "Technology" }
+                    new Category { Name = "Technology" },
+                    new Category { Name = "Fantasy" }
                 };
 
                 context.Categories.AddRange(categories);
@@ -78,7 +79,8 @@ namespace OnlineBookstore.Data
                     new Publisher { Name = "Bloomsbury", Description = "British publishing house" },
                     new Publisher { Name = "Faber and Faber", Description = "Independent publishing house in London" },
                     new Publisher { Name = "Vintage Books", Description = "Imprint of Penguin Random House" },
-                    new Publisher { Name = "Doubleday", Description = "American publishing company" }
+                    new Publisher { Name = "Doubleday", Description = "American publishing company" },
+                    new Publisher { Name = "Little, Brown and Company", Description = "American publishing company founded in 1837" }
                 };
 
                 context.Publishers.AddRange(publishers);
@@ -144,6 +146,61 @@ namespace OnlineBookstore.Data
                         PublisherId = context.Publishers.First(p => p.Name == "Doubleday").Id,
                         CategoryId = context.Categories.First(c => c.Name == "Mystery & Thriller").Id,
                         CoverImageUrl = "https://i.thenile.io/r1000/9780385319058.jpg?r=5f2627ecded76"
+                    },
+                    new Book
+                    {
+                        Title = "The Hunger Games",
+                        Description = "A dystopian novel about survival and rebellion",
+                        Price = 15.99m,
+                        StockQuantity = 45,
+                        AuthorId = context.Authors.First(a => a.Name == "Suzanne Collins").Id,
+                        PublisherId = context.Publishers.First(p => p.Name == "Scholastic").Id,
+                        CategoryId = context.Categories.First(c => c.Name == "Science Fiction").Id,
+                        CoverImageUrl = "https://cdn.kobo.com/book-images/fcc61f79-6dc3-4578-a49b-9628deb9ae23/1200/1200/False/the-hunger-games-hunger-games-book-one.jpg"
+                    },
+                    new Book
+                    {
+                        Title = "Divergent",
+                        Description = "A young adult dystopian novel about identity and choice",
+                        Price = 14.99m,
+                        StockQuantity = 40,
+                        AuthorId = context.Authors.First(a => a.Name == "Veronica Roth").Id,
+                        PublisherId = context.Publishers.First(p => p.Name == "HarperCollins").Id,
+                        CategoryId = context.Categories.First(c => c.Name == "Science Fiction").Id,
+                        CoverImageUrl = "https://tse3.mm.bing.net/th/id/OIP.JFGBS-7WABHsbLhUnsGfAQHaLO?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
+                    },
+                    new Book
+                    {
+                        Title = "A Game of Thrones",
+                        Description = "The first novel in the epic fantasy series",
+                        Price = 18.99m,
+                        StockQuantity = 30,
+                        AuthorId = context.Authors.First(a => a.Name == "George R.R. Martin").Id,
+                        PublisherId = context.Publishers.First(p => p.Name == "Vintage Books").Id,
+                        CategoryId = context.Categories.First(c => c.Name == "Fantasy").Id,
+                        CoverImageUrl = "https://i.harperapps.com/hcanz/covers/9780007459483/x960.jpg"
+                    },
+                    new Book
+                    {
+                        Title = "The Notebook",
+                        Description = "A romantic novel about enduring love",
+                        Price = 11.99m,
+                        StockQuantity = 55,
+                        AuthorId = context.Authors.First(a => a.Name == "Nora Roberts").Id,
+                        PublisherId = context.Publishers.First(p => p.Name == "Simon & Schuster").Id,
+                        CategoryId = context.Categories.First(c => c.Name == "Romance").Id,
+                        CoverImageUrl = "https://www.themoviedb.org/t/p/original/vNc2TvvibEe5Pls8wJOD7GzM5p2.jpg"
+                    },
+                    new Book
+                    {
+                        Title = "Along Came a Spider",
+                        Description = "A psychological thriller featuring detective Alex Cross",
+                        Price = 13.99m,
+                        StockQuantity = 38,
+                        AuthorId = context.Authors.First(a => a.Name == "James Patterson").Id,
+                        PublisherId = context.Publishers.First(p => p.Name == "Little, Brown and Company").Id,
+                        CategoryId = context.Categories.First(c => c.Name == "Mystery & Thriller").Id,
+                        CoverImageUrl = "https://m.media-amazon.com/images/I/61qc9RAZVDL.jpg"
                     }
                 };
 
