@@ -14,9 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Configure DbContext
+// Configure DbContext with environment variable support
+var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") ?? 
+                      builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 // Configure Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -40,9 +42,20 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
-// REPLACE the existing Authentication configuration with JWT Bearer authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");                    // Get JWT settings from appsettings.json
-var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"] ?? "YourSuperSecretKeyHere");  // Convert secret key to bytes
+// Configure JWT with environment variable support
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+                builder.Configuration.GetSection("JwtSettings")["SecretKey"] ?? 
+                "YourSuperSecretKeyHere";
+var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? 
+                builder.Configuration.GetSection("JwtSettings")["Issuer"] ?? 
+                "OnlineBookstore";
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? 
+                  builder.Configuration.GetSection("JwtSettings")["Audience"] ?? 
+                  "OnlineBookstoreUsers";
+
+
+
+var key = Encoding.ASCII.GetBytes(jwtSecret);
 
 // Configure Authentication
 builder.Services.AddAuthentication(options =>
@@ -60,8 +73,8 @@ builder.Services.AddAuthentication(options =>
          IssuerSigningKey = new SymmetricSecurityKey(key),                          
          ValidateIssuer = true,                                                     
          ValidateAudience = true,                                                   
-         ValidIssuer = jwtSettings["Issuer"],                                      
-         ValidAudience = jwtSettings["Audience"],                                  
+                  ValidIssuer = jwtIssuer,      
+         ValidAudience = jwtAudience,                                  
          ClockSkew = TimeSpan.Zero                                                
      };
  });
@@ -88,6 +101,15 @@ builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderItemService, OrderItemService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+
+// Configure PayPal with environment variable support
+var paypalClientId = Environment.GetEnvironmentVariable("PAYPAL_CLIENT_ID") ?? 
+                     builder.Configuration.GetSection("PayPal")["ClientId"];
+var paypalClientSecret = Environment.GetEnvironmentVariable("PAYPAL_CLIENT_SECRET") ?? 
+                         builder.Configuration.GetSection("PayPal")["ClientSecret"];
+var paypalMode = Environment.GetEnvironmentVariable("PAYPAL_MODE") ?? 
+                 builder.Configuration.GetSection("PayPal")["Mode"] ?? "sandbox";
+
 builder.Services.AddScoped<IPayPalService, PayPalService>();    
 
 // Configure Swagger/OpenAPI
@@ -147,10 +169,10 @@ app.UseHttpsRedirection();
 // Add security headers
 app.Use(async (context, next) =>
 {
-    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
-    context.Response.Headers.Add("X-Frame-Options", "DENY");
-    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
-    context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
     await next();
 });
 

@@ -1,20 +1,20 @@
 import * as React from 'react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User, UserRegistration } from '../../types/user';
 
 interface SignUpProps {
     onSignUpSuccess?: (user: User, token: string) => void;
     onSignUpError?: (error: string) => void;
-    onNavigateToSignIn?: () => void;
     onNavigateToTerms?: () => void;
 }
 
 const SignUp: React.FC<SignUpProps> = ({
     onSignUpSuccess,
     onSignUpError,
-    onNavigateToSignIn,
     onNavigateToTerms
 }) => {
+    const navigate = useNavigate();
     // State definitions
     const [formData, setFormData] = useState<UserRegistration>({
         userName: '',
@@ -59,7 +59,7 @@ const SignUp: React.FC<SignUpProps> = ({
 
         // Check if username already exists
         try {
-            const response = await fetch(`http://localhost:5117/api/auth/check-username?userName=${userName}`);
+            const response = await fetch(`https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/auth/check-username?userName=${userName}`);
             if (response.ok) {
                 const { exists } = await response.json();
                 if (exists) {
@@ -88,7 +88,7 @@ const SignUp: React.FC<SignUpProps> = ({
 
         // Check if email already exists
         try {
-            const response = await fetch(`http://localhost:5117/api/auth/check-email?email=${email}`);
+            const response = await fetch(`https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/auth/check-email?email=${email}`);
             if (response.ok) {
                 const { exists } = await response.json();
                 if (exists) {
@@ -223,7 +223,7 @@ const SignUp: React.FC<SignUpProps> = ({
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5117/api/auth/register', {
+            const response = await fetch('https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -326,7 +326,7 @@ const SignUp: React.FC<SignUpProps> = ({
                                                 <button
                                                     type="button"
                                                     className="btn btn-secondary"
-                                                    onClick={() => onNavigateToSignIn?.()}
+                                                    onClick={() => navigate('/signin')}
                                                 >
                                                     Back to Sign In
                                                 </button>

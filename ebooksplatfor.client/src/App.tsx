@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 
 // Layout Components
 import MainLayout from './components/layout/MainLayout';

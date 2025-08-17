@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User, UserCredentials } from '../../types/user';
 
 interface SignInProps {
@@ -15,6 +16,7 @@ const SignIn = ({
     onSignInSuccess,
     onSignInError
 }: SignInProps) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState<UserCredentials>({
         userName: '',
         password: '',
@@ -94,7 +96,7 @@ const SignIn = ({
 
         try {
             // API call to backend
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch('https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -261,7 +263,13 @@ const SignIn = ({
                                 </button>
 
                                 <div className="text-center mt-3">
-                                    <a href="/signup" className="text-decoration-none">Don't have an account? Sign up</a>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-link text-decoration-none p-0"
+                                        onClick={() => navigate('/signup')}
+                                    >
+                                        Don't have an account? Sign up
+                                    </button>
                                 </div>
                             </form>
                         </div>
