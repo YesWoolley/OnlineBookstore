@@ -190,22 +190,12 @@ app.MapControllers();
 
 // Health check endpoints
 app.MapGet("/", () => {
-    var keyBytes = Encoding.UTF8.GetBytes(jwtSecret);
-    var jwtInfo = new {
+    return Results.Json(new {
         Message = "Online Bookstore API is running! Visit /swagger for API documentation.",
-        JWT_Info = new {
-            SecretKeyLength = jwtSecret.Length,
-            KeyBytesLength = keyBytes.Length,
-            KeyBits = keyBytes.Length * 8,
-            SecretKeyPreview = jwtSecret.Substring(0, Math.Min(10, jwtSecret.Length)) + "...",
-            SecretKeyFull = jwtSecret, // Show the full key to debug
-            SecretKeyTrimmed = jwtSecret.Trim(), // Show trimmed version
-            Status = keyBytes.Length * 8 >= 256 ? "Valid (256+ bits)" : "Invalid (< 256 bits)"
-        },
-        Timestamp = DateTime.UtcNow
-    };
-    
-    return Results.Json(jwtInfo);
+        Status = "Healthy",
+        Timestamp = DateTime.UtcNow,
+        Environment = app.Environment.EnvironmentName
+    });
 });
 app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow, Environment = app.Environment.EnvironmentName });
 app.MapGet("/api/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow, Environment = app.Environment.EnvironmentName });
