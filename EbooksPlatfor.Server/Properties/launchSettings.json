@@ -10,7 +10,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.SpaProxy",
-        "JWT_SECRET_KEY": "fImp8qv7YucCVNrJKRay1gUL6j2TnMZk0GhiPtHl4weXAsxoFb",
+        "JWT_SECRET_KEY": "Yy5qV1mK8rN2tF4pX9bD6wZ3aL7hE0sR1uG5oC2jM8nT4vQ6yP3kB7zW8xR2dJ9",
         "DB_SERVER": "tcp:onlinebookstore-db-server.database.windows.net,1433",
         "DB_NAME": "onlinebookstore-db",
         "DB_USERNAME": "onlinebookstore-admin",
@@ -27,7 +27,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.SpaProxy",
-        "JWT_SECRET_KEY": "fImp8qv7YucCVNrJKRay1gUL6j2TnMZk0GhiPtHl4weXAsxoFb",
+        "JWT_SECRET_KEY": "Yy5qV1mK8rN2tF4pX9bD6wZ3aL7hE0sR1uG5oC2jM8nT4vQ6yP3kB7zW8xR2dJ9",
         "DB_SERVER": "tcp:onlinebookstore-db-server.database.windows.net,1433",
         "DB_NAME": "onlinebookstore-db",
         "DB_USERNAME": "onlinebookstore-admin",

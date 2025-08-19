@@ -28,6 +28,7 @@ const SignUp: React.FC<SignUpProps> = ({
 
     const [currentStep, setCurrentStep] = useState<number>(1);
     const [errors, setErrors] = useState<Partial<UserRegistration>>({});
+    const [fieldTouched, setFieldTouched] = useState<Partial<Record<keyof UserRegistration, boolean>>>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [showNotification, setShowNotification] = useState<boolean>(false);
     const [notificationMessage, setNotificationMessage] = useState<string>('');
@@ -45,8 +46,8 @@ const SignUp: React.FC<SignUpProps> = ({
         }, 5000);
     };
 
-    // Validation functions
-    const validateUserName = async (userName: string): Promise<string> => {
+    // Real-time validation functions
+    const validateUserNameRealTime = (userName: string): string => {
         if (!userName || userName.trim() === '') {
             return 'Username is required';
         }
@@ -56,6 +57,179 @@ const SignUp: React.FC<SignUpProps> = ({
         if (!/^[a-zA-Z0-9._@+-]+$/.test(userName)) {
             return 'Username contains invalid characters';
         }
+        return '';
+    };
+
+    const validateEmailRealTime = (email: string): string => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || email.trim() === '') {
+            return 'Email is required';
+        }
+        if (!emailRegex.test(email)) {
+            return 'Please enter a valid email';
+        }
+        return '';
+    };
+
+    const validatePasswordRealTime = (password: string): string => {
+        if (!password || password.trim() === '') {
+            return 'Password is required';
+        }
+        if (password.length < 8) {
+            return 'Password must be at least 8 characters';
+        }
+        if (!/(?=.*[a-z])/.test(password)) {
+            return 'Password must contain at least one lowercase letter';
+        }
+        if (!/(?=.*[A-Z])/.test(password)) {
+            return 'Password must contain at least one uppercase letter';
+        }
+        if (!/(?=.*\d)/.test(password)) {
+            return 'Password must contain at least one number';
+        }
+        return '';
+    };
+
+    const validateConfirmPasswordRealTime = (password: string, confirmPassword: string): string => {
+        if (!confirmPassword || confirmPassword.trim() === '') {
+            return 'Please confirm your password';
+        }
+        if (password !== confirmPassword) {
+            return 'Passwords do not match';
+        }
+        return '';
+    };
+
+    const validateFirstNameRealTime = (firstName: string): string => {
+        if (!firstName || firstName.trim() === '') {
+            return 'First name is required';
+        }
+        if (firstName.length < 2) {
+            return 'First name must be at least 2 characters';
+        }
+        return '';
+    };
+
+    const validateLastNameRealTime = (lastName: string): string => {
+        if (!lastName || lastName.trim() === '') {
+            return 'Last name is required';
+        }
+        if (lastName.length < 2) {
+            return 'Last name must be at least 2 characters';
+        }
+        return '';
+    };
+
+    const validatePhoneNumberRealTime = (phoneNumber: string): string => {
+        if (!phoneNumber || phoneNumber.trim() === '') {
+            return 'Phone number is required';
+        }
+        if (!/^[\+]?[1-9][\d]{0,15}$/.test(phoneNumber.replace(/[\s\-\(\)]/g, ''))) {
+            return 'Please enter a valid phone number';
+        }
+        return '';
+    };
+
+    // Handle input changes with real-time validation
+    const handleInputChange = (field: keyof UserRegistration, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+
+        // Mark field as touched
+        setFieldTouched(prev => ({
+            ...prev,
+            [field]: true
+        }));
+
+        // Real-time validation
+        let error = '';
+        switch (field) {
+            case 'userName':
+                error = validateUserNameRealTime(value);
+                break;
+            case 'email':
+                error = validateEmailRealTime(value);
+                break;
+            case 'password':
+                error = validatePasswordRealTime(value);
+                break;
+            case 'confirmPassword':
+                error = validateConfirmPasswordRealTime(formData.password || '', value);
+                break;
+            case 'firstName':
+                error = validateFirstNameRealTime(value);
+                break;
+            case 'lastName':
+                error = validateLastNameRealTime(value);
+                break;
+            case 'phoneNumber':
+                error = validatePhoneNumberRealTime(value);
+                break;
+        }
+
+        // Update errors immediately
+        setErrors(prev => ({
+            ...prev,
+            [field]: error
+        }));
+    };
+
+    // Handle field blur (when user leaves input)
+    const handleFieldBlur = (field: keyof UserRegistration) => {
+        setFieldTouched(prev => ({
+            ...prev,
+            [field]: true
+        }));
+
+        // Validate field on blur
+        let error = '';
+        switch (field) {
+            case 'userName':
+                error = validateUserNameRealTime(formData.userName || '');
+                break;
+            case 'email':
+                error = validateEmailRealTime(formData.email || '');
+                break;
+            case 'password':
+                error = validatePasswordRealTime(formData.password || '');
+                break;
+            case 'confirmPassword':
+                error = validateConfirmPasswordRealTime(formData.password || '', formData.confirmPassword || '');
+                break;
+            case 'firstName':
+                error = validateFirstNameRealTime(formData.firstName || '');
+                break;
+            case 'lastName':
+                error = validateLastNameRealTime(formData.lastName || '');
+                break;
+            case 'phoneNumber':
+                error = validatePhoneNumberRealTime(formData.phoneNumber || '');
+                break;
+        }
+
+        setErrors(prev => ({
+            ...prev,
+            [field]: error
+        }));
+    };
+
+    // Get password requirements status
+    const getPasswordRequirements = (password: string | undefined) => {
+        const pwd = password || '';
+        return {
+            length: pwd.length >= 8,
+            lowercase: /(?=.*[a-z])/.test(pwd),
+            uppercase: /(?=.*[A-Z])/.test(pwd),
+            number: /(?=.*\d)/.test(pwd)
+        };
+    };
+
+    // Async validation functions for server-side checks
+    const validateUserName = async (userName: string): Promise<string> => {
+        const realTimeError = validateUserNameRealTime(userName);
+        if (realTimeError) return realTimeError;
 
         // Check if username already exists
         try {
@@ -78,13 +252,8 @@ const SignUp: React.FC<SignUpProps> = ({
     };
 
     const validateEmail = async (email: string): Promise<string> => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email || email.trim() === '') {
-            return 'Email is required';
-        }
-        if (!emailRegex.test(email)) {
-            return 'Please enter a valid email';
-        }
+        const realTimeError = validateEmailRealTime(email);
+        if (realTimeError) return realTimeError;
 
         // Check if email already exists
         try {
@@ -107,72 +276,41 @@ const SignUp: React.FC<SignUpProps> = ({
     };
 
     const validatePassword = (password: string): string => {
-        if (!password || password.trim() === '') {
-            return 'Password is required';
-        }
-        if (password.length < 8) {
-            return 'Password must be at least 8 characters';
-        }
-        if (!/(?=.*[a-z])/.test(password)) {
-            return 'Password must contain at least one lowercase letter';
-        }
-        if (!/(?=.*[A-Z])/.test(password)) {
-            return 'Password must contain at least one uppercase letter';
-        }
-        if (!/(?=.*\d)/.test(password)) {
-            return 'Password must contain at least one number';
-        }
-        // Removed special character requirement to make it more user-friendly
-        return '';
+        return validatePasswordRealTime(password);
     };
 
     const validateConfirmPassword = (password: string, confirmPassword: string): string => {
-        if (!confirmPassword || confirmPassword.trim() === '') {
-            return 'Please confirm your password';
+        return validateConfirmPasswordRealTime(password, confirmPassword);
+    };
+
+    const validateFirstName = (firstName: string): string => {
+        if (!firstName || firstName.trim() === '') {
+            return 'First name is required';
         }
-        if (password !== confirmPassword) {
-            return 'Passwords do not match';
+        if (firstName.length < 2) {
+            return 'First name must be at least 2 characters';
         }
         return '';
     };
 
-    const getPasswordStrength = (password: string): {
-        score: number;
-        label: string;
-        color: string;
-    } => {
-        let score = 0;
-
-        if (password.length >= 8) score++;
-        if (/[a-z]/.test(password)) score++;
-        if (/[A-Z]/.test(password)) score++;
-        if (/\d/.test(password)) score++;
-        // Removed special character check to match new requirements
-
-        const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
-        const colors = ['danger', 'warning', 'info', 'success', 'success'];
-
-        return {
-            score: Math.min(score, 4),
-            label: labels[score],
-            color: colors[score]
-        };
+    const validateLastName = (lastName: string): string => {
+        if (!lastName || lastName.trim() === '') {
+            return 'Last name is required';
+        }
+        if (lastName.length < 2) {
+            return 'Last name must be at least 2 characters';
+        }
+        return '';
     };
 
-    // Handle input changes
-    const handleInputChange = (field: keyof UserRegistration, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-
-        // Clear error for this field when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({
-                ...prev,
-                [field]: undefined
-            }));
+    const validatePhoneNumber = (phoneNumber: string): string => {
+        if (!phoneNumber || phoneNumber.trim() === '') {
+            return 'Phone number is required';
         }
+        if (!/^[\+]?[1-9][\d]{0,15}$/.test(phoneNumber.replace(/[\s\-\(\)]/g, ''))) {
+            return 'Please enter a valid phone number';
+        }
+        return '';
     };
 
     // Form submission handler
@@ -190,10 +328,13 @@ const SignUp: React.FC<SignUpProps> = ({
         const emailError = await validateEmail(formData.email);
         const passwordError = validatePassword(formData.password);
         const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
+        const firstNameError = validateFirstName(formData.firstName || '');
+        const lastNameError = validateLastName(formData.lastName || '');
+        const phoneNumberError = validatePhoneNumber(formData.phoneNumber || '');
 
-        console.log('Validation results:', { userNameError, emailError, passwordError, confirmPasswordError }); // Debug log
+        console.log('Validation results:', { userNameError, emailError, passwordError, confirmPasswordError, firstNameError, lastNameError, phoneNumberError }); // Debug log
 
-        if (userNameError || emailError || passwordError || confirmPasswordError) {
+        if (userNameError || emailError || passwordError || confirmPasswordError || firstNameError || lastNameError || phoneNumberError) {
             console.log('Validation failed, setting errors'); // Debug log
             
             // Set field-specific errors
@@ -201,11 +342,14 @@ const SignUp: React.FC<SignUpProps> = ({
                 userName: userNameError || undefined,
                 email: emailError || undefined,
                 password: passwordError || undefined,
-                confirmPassword: confirmPasswordError || undefined
+                confirmPassword: confirmPasswordError || undefined,
+                firstName: firstNameError || undefined,
+                lastName: lastNameError || undefined,
+                phoneNumber: phoneNumberError || undefined
             });
 
             // Show notification with first error
-            const firstError = userNameError || emailError || passwordError || confirmPasswordError;
+            const firstError = userNameError || emailError || passwordError || confirmPasswordError || firstNameError || lastNameError || phoneNumberError;
             if (firstError) {
                 showNotificationMessage(`Please fix the following issues: ${firstError}`, 'error');
             }
@@ -304,9 +448,13 @@ const SignUp: React.FC<SignUpProps> = ({
                                                     id="userName"
                                                     value={formData.userName}
                                                     onChange={(e) => handleInputChange('userName', e.target.value)}
+                                                    onBlur={() => handleFieldBlur('userName')}
                                                     placeholder="Enter username"
                                                 />
-                                                {errors.userName && <div className="invalid-feedback">{errors.userName}</div>}
+                                                {errors.userName && fieldTouched.userName && <div className="invalid-feedback">{errors.userName}</div>}
+                                                {fieldTouched.userName && !errors.userName && (
+                                                    <div className="valid-feedback">Looks good!</div>
+                                                )}
                                             </div>
 
                                             <div className="mb-3">
@@ -317,9 +465,13 @@ const SignUp: React.FC<SignUpProps> = ({
                                                     id="email"
                                                     value={formData.email}
                                                     onChange={(e) => handleInputChange('email', e.target.value)}
+                                                    onBlur={() => handleFieldBlur('email')}
                                                     placeholder="Enter email"
                                                 />
-                                                {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                                                {errors.email && fieldTouched.email && <div className="invalid-feedback">{errors.email}</div>}
+                                                {fieldTouched.email && !errors.email && (
+                                                    <div className="valid-feedback">Looks good!</div>
+                                                )}
                                             </div>
 
                                             <div className="d-flex justify-content-between">
@@ -354,21 +506,37 @@ const SignUp: React.FC<SignUpProps> = ({
                                                     id="password"
                                                     value={formData.password}
                                                     onChange={(e) => handleInputChange('password', e.target.value)}
+                                                    onBlur={() => handleFieldBlur('password')}
                                                     placeholder="Enter password"
                                                 />
-                                                {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                                                {errors.password && fieldTouched.password && <div className="invalid-feedback">{errors.password}</div>}
+                                                {fieldTouched.password && !errors.password && (
+                                                    <div className="valid-feedback">Looks good!</div>
+                                                )}
 
                                                 {/* Password strength meter */}
                                                 {formData.password && (
                                                     <div className="mt-2">
                                                         <div className="progress" style={{ height: '4px' }}>
                                                             <div
-                                                                className={`progress-bar bg-${getPasswordStrength(formData.password).color}`}
-                                                                style={{ width: `${(getPasswordStrength(formData.password).score / 4) * 100}%` }}
+                                                                className={`progress-bar bg-${getPasswordRequirements(formData.password).length ? 'success' : 'warning'}`}
+                                                                style={{ width: `${(getPasswordRequirements(formData.password).length ? 100 : 0)}%` }}
                                                             ></div>
                                                         </div>
                                                         <small className="text-muted">
-                                                            Strength: {getPasswordStrength(formData.password).label}
+                                                            Length: {getPasswordRequirements(formData.password).length ? '✓' : '✗'}
+                                                        </small>
+                                                        <br />
+                                                        <small className="text-muted">
+                                                            Lowercase: {getPasswordRequirements(formData.password).lowercase ? '✓' : '✗'}
+                                                        </small>
+                                                        <br />
+                                                        <small className="text-muted">
+                                                            Uppercase: {getPasswordRequirements(formData.password).uppercase ? '✓' : '✗'}
+                                                        </small>
+                                                        <br />
+                                                        <small className="text-muted">
+                                                            Number: {getPasswordRequirements(formData.password).number ? '✓' : '✗'}
                                                         </small>
                                                     </div>
                                                 )}
@@ -382,9 +550,13 @@ const SignUp: React.FC<SignUpProps> = ({
                                                     id="confirmPassword"
                                                     value={formData.confirmPassword}
                                                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                                                    onBlur={() => handleFieldBlur('confirmPassword')}
                                                     placeholder="Confirm password"
                                                 />
-                                                {errors.confirmPassword && <div className="invalid-feedback">{errors.confirmPassword}</div>}
+                                                {errors.confirmPassword && fieldTouched.confirmPassword && <div className="invalid-feedback">{errors.confirmPassword}</div>}
+                                                {fieldTouched.confirmPassword && !errors.confirmPassword && (
+                                                    <div className="valid-feedback">Looks good!</div>
+                                                )}
                                             </div>
 
                                             <div className="d-flex justify-content-between">
@@ -420,8 +592,13 @@ const SignUp: React.FC<SignUpProps> = ({
                                                         id="firstName"
                                                         value={formData.firstName}
                                                         onChange={(e) => handleInputChange('firstName', e.target.value)}
+                                                        onBlur={() => handleFieldBlur('firstName')}
                                                         placeholder="Enter first name"
                                                     />
+                                                    {errors.firstName && fieldTouched.firstName && <div className="invalid-feedback">{errors.firstName}</div>}
+                                                    {fieldTouched.firstName && !errors.firstName && (
+                                                        <div className="valid-feedback">Looks good!</div>
+                                                    )}
                                                 </div>
                                                 <div className="col-md-6 mb-3">
                                                     <label htmlFor="lastName" className="form-label">Last Name</label>
@@ -431,8 +608,13 @@ const SignUp: React.FC<SignUpProps> = ({
                                                         id="lastName"
                                                         value={formData.lastName}
                                                         onChange={(e) => handleInputChange('lastName', e.target.value)}
+                                                        onBlur={() => handleFieldBlur('lastName')}
                                                         placeholder="Enter last name"
                                                     />
+                                                    {errors.lastName && fieldTouched.lastName && <div className="invalid-feedback">{errors.lastName}</div>}
+                                                    {fieldTouched.lastName && !errors.lastName && (
+                                                        <div className="valid-feedback">Looks good!</div>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -444,8 +626,13 @@ const SignUp: React.FC<SignUpProps> = ({
                                                     id="phoneNumber"
                                                     value={formData.phoneNumber}
                                                     onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                                                    onBlur={() => handleFieldBlur('phoneNumber')}
                                                     placeholder="Enter phone number"
                                                 />
+                                                {errors.phoneNumber && fieldTouched.phoneNumber && <div className="invalid-feedback">{errors.phoneNumber}</div>}
+                                                {fieldTouched.phoneNumber && !errors.phoneNumber && (
+                                                    <div className="valid-feedback">Looks good!</div>
+                                                )}
                                             </div>
 
                                             <div className="d-flex justify-content-between">

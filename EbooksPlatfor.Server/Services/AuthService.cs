@@ -257,8 +257,20 @@ namespace OnlineBookstore.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var secretKey = _configuration["JwtSettings:SecretKey"];
-            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey!));
+            // Use the same configuration logic as Program.cs
+            var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+                            _configuration["JwtSettings:SecretKey"] ?? 
+                            "Yy5qV1mK8rN2tF4pX9bD6wZ3aL7hE0sR1uG5oC2jM8nT4vQ6yP3kB7zW8xR2dJ9";
+            
+            // Log which configuration source was used
+            var configSource = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") != null ? "Environment Variable" :
+                              _configuration["JwtSettings:SecretKey"] != null ? "appsettings.json" : "Hardcoded Fallback";
+            
+            Console.WriteLine($"[JWT Generation] Using {configSource} for secret key");
+            Console.WriteLine($"[JWT Generation] Secret key length: {secretKey.Length} characters");
+            Console.WriteLine($"[JWT Generation] Secret key bits: {Encoding.UTF8.GetBytes(secretKey).Length * 8} bits");
+            
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var issuer = _configuration["JwtSettings:Issuer"];

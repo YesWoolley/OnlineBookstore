@@ -45,7 +45,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // Configure JWT with environment variable support
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
                 builder.Configuration.GetSection("JwtSettings")["SecretKey"] ?? 
-                "YourSuperSecretKeyHere";
+                "Yy5qV1mK8rN2tF4pX9bD6wZ3aL7hE0sR1uG5oC2jM8nT4vQ6yP3kB7zW8xR2dJ9";
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? 
                 builder.Configuration.GetSection("JwtSettings")["Issuer"] ?? 
                 "OnlineBookstore";
@@ -53,9 +53,15 @@ var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ??
                   builder.Configuration.GetSection("JwtSettings")["Audience"] ?? 
                   "OnlineBookstoreUsers";
 
+// Log JWT key information at startup
+var keyBytes = Encoding.UTF8.GetBytes(jwtSecret);
+Console.WriteLine($"[JWT] Secret key length: {jwtSecret.Length} characters");
+Console.WriteLine($"[JWT] Key bytes length: {keyBytes.Length} bytes");
+Console.WriteLine($"[JWT] Key bits: {keyBytes.Length * 8} bits");
+Console.WriteLine($"[JWT] Secret key preview: {jwtSecret.Substring(0, Math.Min(10, jwtSecret.Length))}...");
 
-
-var key = Encoding.ASCII.GetBytes(jwtSecret);
+// Use plain text key as UTF8 bytes
+var key = new SymmetricSecurityKey(keyBytes);
 
 // Configure Authentication
 builder.Services.AddAuthentication(options =>
@@ -70,9 +76,9 @@ builder.Services.AddAuthentication(options =>
      options.TokenValidationParameters = new TokenValidationParameters              
      {
          ValidateIssuerSigningKey = true,                                           
-         IssuerSigningKey = new SymmetricSecurityKey(key),                          
+         IssuerSigningKey = key,                                          
          ValidateIssuer = true,                                                     
-         ValidateAudience = true,                                                   
+         ValidateAudience = true,                                                     
                   ValidIssuer = jwtIssuer,      
          ValidAudience = jwtAudience,                                  
          ClockSkew = TimeSpan.Zero                                                
@@ -183,7 +189,24 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Health check endpoints
-app.MapGet("/", () => "Online Bookstore API is running! Visit /swagger for API documentation.");
+app.MapGet("/", () => {
+    var keyBytes = Encoding.UTF8.GetBytes(jwtSecret);
+    var jwtInfo = new {
+        Message = "Online Bookstore API is running! Visit /swagger for API documentation.",
+        JWT_Info = new {
+            SecretKeyLength = jwtSecret.Length,
+            KeyBytesLength = keyBytes.Length,
+            KeyBits = keyBytes.Length * 8,
+            SecretKeyPreview = jwtSecret.Substring(0, Math.Min(10, jwtSecret.Length)) + "...",
+            SecretKeyFull = jwtSecret, // Show the full key to debug
+            SecretKeyTrimmed = jwtSecret.Trim(), // Show trimmed version
+            Status = keyBytes.Length * 8 >= 256 ? "Valid (256+ bits)" : "Invalid (< 256 bits)"
+        },
+        Timestamp = DateTime.UtcNow
+    };
+    
+    return Results.Json(jwtInfo);
+});
 app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow, Environment = app.Environment.EnvironmentName });
 app.MapGet("/api/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow, Environment = app.Environment.EnvironmentName });
 

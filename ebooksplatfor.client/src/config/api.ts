@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  // Base URL for API calls - can be overridden by environment variable
+  // Base URL for API calls
   BASE_URL: 'https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api',
   
   // Timeout for API requests (in milliseconds)

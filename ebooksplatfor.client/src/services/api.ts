@@ -235,14 +235,58 @@ class ApiService {
 
   // Authentication API methods
   async signIn(credentials: any) {
-    return this.post<any>('/auth/signin', credentials);
+    const response = await this.post<any>('/auth/signin', credentials);
+    // Log JWT token for debugging
+    if (response && response.token) {
+      console.log("🔑 JWT Token (Sign In):", response.token);
+      console.log("📏 Token Length:", response.token.length);
+      // Store the new valid token
+      localStorage.setItem('token', response.token);
+    }
+    return response;
   }
 
   async signUp(userData: any) {
-    return this.post<any>('/auth/signup', userData);
+    const response = await this.post<any>('/auth/signup', userData);
+    // Log JWT token for debugging
+    if (response && response.token) {
+      console.log("🔑 JWT Token (Sign Up):", response.token);
+      console.log("📏 Token Length:", response.token.length);
+      // Store the new valid token
+      localStorage.setItem('token', response.token);
+    }
+    return response;
+  }
+
+  // Add token validation and cleanup
+  validateAndCleanToken() {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Check if token looks like a valid JWT (3 parts separated by dots)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.log('🗑️ Invalid JWT format detected, clearing old token');
+        localStorage.removeItem('token');
+        return false;
+      }
+      
+      // Check if token is too short (likely the old 136-bit key)
+      if (token.length < 100) {
+        console.log('🗑️ Token too short, likely old invalid JWT, clearing');
+        localStorage.removeItem('token');
+        return false;
+      }
+      
+      return true;
+    }
+    return false;
   }
 
   async getCurrentUser() {
+    // Validate token before making request
+    if (!this.validateAndCleanToken()) {
+      return null;
+    }
     return this.get<any>('/auth/me');
   }
 }

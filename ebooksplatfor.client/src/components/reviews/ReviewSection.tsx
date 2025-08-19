@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReviewForm from './ReviewForm';
 import ReviewList from './ReviewList';
 import type { Review, CreateReview, UpdateReview } from '../../types/review';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ReviewSectionProps {
   bookId: number;
@@ -18,6 +19,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const queryClient = useQueryClient(); // Add this for cache invalidation
 
   // Fetch reviews when component mounts
   useEffect(() => {
@@ -27,7 +29,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   const fetchReviews = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/reviews/book/${bookId}`, {
+      const response = await fetch('https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/reviews/book/' + bookId, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -47,7 +49,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   const handleSubmitReview = async (reviewData: CreateReview) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/reviews', {
+      const response = await fetch('https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,6 +62,12 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
         const newReview = await response.json();
         setReviews(prev => [newReview, ...prev]);
         setShowForm(false);
+        
+        // Invalidate book cache to refresh review count immediately
+        // This ensures the book card shows updated review count without waiting for cache to expire
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+        queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+        
         // Show success message
         alert('Review submitted successfully!');
       } else {
@@ -79,7 +87,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/reviews/${editingReview.id}`, {
+      const response = await fetch('https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/reviews/' + editingReview.id, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -96,6 +104,11 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
             : review
         ));
         setEditingReview(null);
+        
+        // Invalidate book cache to refresh review count immediately
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+        queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+        
         alert('Review updated successfully!');
       } else {
         const error = await response.json();
@@ -113,7 +126,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
     if (!confirm('Are you sure you want to delete this review?')) return;
 
     try {
-      const response = await fetch(`/api/reviews/${reviewId}`, {
+      const response = await fetch('https://onlinebookstore-backend-f4ejgsdudbghhkfz.australiaeast-01.azurewebsites.net/api/reviews/' + reviewId, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -122,6 +135,11 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
 
       if (response.ok) {
         setReviews(prev => prev.filter(review => review.id !== reviewId));
+        
+        // Invalidate book cache to refresh review count immediately
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+        queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+        
         alert('Review deleted successfully!');
       } else {
         const error = await response.json();
